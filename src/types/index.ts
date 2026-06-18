@@ -37,26 +37,33 @@ export type AIStatus = 'disponivel' | 'processando' | 'indisponivel' | 'revisado
 // ── EMPRESA CONTRATANTE ──────────────────────────────────────────
 
 export interface Company {
-  id:                string;
-  user_id:           string;
-  razao_social:      string;
-  nome_fantasia?:    string;
-  cnpj:              string;
+  id:                   string;
+  user_id:              string;
+  razao_social:         string;
+  nome_fantasia?:       string;
+  cnpj:                 string;
   inscricao_municipal?: string;
-  responsavel_legal: string;
-  cargo_responsavel?: string;
-  cep:               string;
-  logradouro:        string;
-  numero:            string;
-  complemento?:      string;
-  bairro:            string;
-  cidade:            string;
-  uf:                string;
-  email:             string;
-  telefone?:         string;
-  logo_url?:         string;
-  created_at?:       string;
-  updated_at?:       string;
+  inscricao_estadual?:  string;
+  responsavel_legal:    string;
+  cargo_responsavel?:   string;
+  cpf_responsavel?:     string;
+  cep:                  string;
+  logradouro:           string;
+  numero:               string;
+  complemento?:         string;
+  bairro:               string;
+  cidade:               string;
+  uf:                   string;
+  email:                string;
+  telefone?:            string;
+  pix_key?:             string;
+  banco?:               string;
+  agencia?:             string;
+  conta?:               string;
+  tipo_conta?:          string;
+  logo_url?:            string;
+  created_at?:          string;
+  updated_at?:          string;
 }
 
 // ── PRESTADOR DE SERVIÇOS ────────────────────────────────────────
