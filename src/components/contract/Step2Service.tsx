@@ -26,6 +26,11 @@ const MODALIDADES = [
 // Periodicidades com placeholder inteligente para o campo de detalhamento
 const PERIODICIDADES = [
   {
+    value: 'diario',
+    label: 'Diário',
+    placeholder: 'Ex: De segunda a sexta-feira, das 08h às 17h, em horário comercial, com intervalo de almoço das 12h às 13h, conforme escala definida mensalmente entre as partes.',
+  },
+  {
     value: 'semanal',
     label: 'Semanal',
     placeholder: 'Ex: Segundas e Quartas-feiras, das 08h às 12h — totalizando aproximadamente 8 atendimentos por mês, conforme disponibilidade pactuada.',

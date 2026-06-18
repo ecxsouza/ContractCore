@@ -116,11 +116,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Enviar
-    // Remetente: Nome Fantasia <email@empresa.com>
-    // Em produção, o domínio deve estar verificado no Resend
-    const fromEmail = company.email && company.nome_fantasia
-      ? `${company.nome_fantasia} <${company.email}>`
-      : process.env.RESEND_FROM_EMAIL || 'ContractCore <onboarding@resend.dev>';
+    // Remetente: usa onboarding@resend.dev (funciona sem verificação de domínio)
+    // com o nome da empresa para personalização.
+    // Quando o domínio estiver verificado no Resend, trocar para o e-mail real da empresa.
+    const nomeRemetente = company.nome_fantasia || company.razao_social || 'ContractCore';
+    const fromEmail = process.env.RESEND_FROM_EMAIL
+      ? process.env.RESEND_FROM_EMAIL
+      : `${nomeRemetente} <onboarding@resend.dev>`;
 
     const resultado = await sendEmail({
       to:       destinatarios,

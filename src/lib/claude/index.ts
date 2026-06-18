@@ -314,5 +314,18 @@ export async function suggestContractObject(profissao: string, especialidade?: s
 
   const c = response.content[0];
   if (c.type !== 'text') return '';
-  return c.text.replace(/\*\*/g, '').replace(/^#{1,6}\s*/gm, '').trim();
+  // Remove fences de markdown/JSON, asteriscos e títulos
+  return c.text
+    .replace(/^```[a-z]*\s*/gim, '')   // ```json ou ``` no início
+    .replace(/```\s*$/gim, '')          // ``` no final
+    .replace(/^\{[\s\S]*?\}\s*/m, (match) => {
+      // Se a resposta for um objeto JSON, extrair o valor do campo
+      try {
+        const parsed = JSON.parse(match.trim());
+        return Object.values(parsed)[0] as string || match;
+      } catch { return match; }
+    })
+    .replace(/\*\*/g, '')
+    .replace(/^#{1,6}\s*/gm, '')
+    .trim();
 }
