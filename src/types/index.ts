@@ -8,15 +8,15 @@
 export type PersonType = 'PJ' | 'MEI' | 'PF';
 
 export type ProfessionType =
-  | 'psicologo' | 'neuropsicopedagogo' | 'fonoaudiologo'
-  | 'psicopedagogo' | 'terapeuta_ocupacional' | 'assistente_social'
-  | 'pedagogo' | 'secretaria' | 'recepcao' | 'coordenador' | 'outro';
+  | 'psicologo' | 'neuropsicologo' | 'fonoaudiologo'
+  | 'psicopedagogo' | 'secretaria' | 'recepcionista'
+  | 'coordenador' | 'outro';
 
 export type ModalityType = 'presencial' | 'online' | 'hibrido';
 
 export type RemunerationModel =
-  | 'por_atendimento' | 'percentual_repasse' | 'valor_fixo_mensal'
-  | 'hora_trabalhada' | 'producao' | 'reembolso';
+  | 'por_atendimento' | 'por_hora' | 'por_plantao'
+  | 'percentual' | 'pacote' | 'reembolso' | 'bonus' | 'outro';
 
 export type PaymentMethod = 'pix' | 'transferencia' | 'boleto' | 'dinheiro' | 'outro';
 
@@ -125,7 +125,7 @@ export interface RemunerationDetails {
   valor_descricao:    string;
   data_pagamento:     string;
   formas_pagamento:   PaymentMethod[];
-  emite_nota_fiscal:  'obrigatorio' | 'mei_dispensado' | 'conforme_legislacao';
+  emite_nota_fiscal:  'obrigatorio' | 'dispensado_mei' | 'a_definir' | 'mei_dispensado' | 'conforme_legislacao';
   retencoes_fiscais?: string;
   reembolso_tipo?:    string;
   reembolso_descricao?: string;
