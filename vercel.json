@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "src/app/api/claude/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/notifications/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/notifications",
+      "schedule": "0 11 * * *"
+    }
+  ]
+}

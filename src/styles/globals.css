@@ -1,0 +1,310 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* ── RESET BASE ─────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #f8fafc;
+  color: #0f2f4e;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── SCROLLBAR ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── FOCUS RING ──────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #2c6fa0;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── COMPONENTES GLOBAIS ─────────────────────────────────────── */
+@layer components {
+
+  /* Card base */
+  .cc-card {
+    @apply bg-white border border-slate-200 rounded-2xl shadow-card;
+  }
+
+  /* Input base */
+  .cc-input {
+    @apply w-full px-3 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50
+           text-slate-900 placeholder-slate-400 transition-all duration-150
+           focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100
+           focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .cc-input.error {
+    @apply border-red-400 ring-2 ring-red-100;
+  }
+
+  /* Label */
+  .cc-label {
+    @apply block text-xs font-semibold text-slate-600 mb-1.5 tracking-wide uppercase;
+  }
+
+  /* Select */
+  .cc-select {
+    @apply cc-input appearance-none cursor-pointer pr-8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+  }
+
+  /* Textarea */
+  .cc-textarea {
+    @apply cc-input resize-y min-h-[80px];
+  }
+
+  /* Botões */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-brand-800 hover:bg-brand-700
+           text-white text-sm font-semibold rounded-xl transition-all duration-150
+           shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50
+           text-slate-700 text-sm font-semibold rounded-xl border border-slate-300
+           transition-all duration-150 shadow-sm hover:shadow-md active:scale-95;
+  }
+  .btn-gold {
+    @apply inline-flex items-center gap-2 px-5 py-2.5
+           bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-500
+           text-white text-sm font-semibold rounded-xl transition-all duration-150
+           shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-brand-700
+           hover:bg-brand-50 text-sm font-medium rounded-xl transition-all duration-150;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700
+           text-white text-sm font-semibold rounded-xl transition-all duration-150 active:scale-95;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full;
+  }
+  .badge-blue    { @apply badge bg-brand-100 text-brand-700; }
+  .badge-green   { @apply badge bg-emerald-100 text-emerald-700; }
+  .badge-yellow  { @apply badge bg-amber-100 text-amber-700; }
+  .badge-red     { @apply badge bg-red-100 text-red-700; }
+  .badge-gray    { @apply badge bg-slate-100 text-slate-600; }
+  .badge-gold    { @apply badge bg-gold-300 text-amber-900; }
+
+  /* Section title */
+  .section-title {
+    @apply text-xs font-bold uppercase tracking-widest text-brand-600 mb-4
+           pb-2 border-b border-brand-100;
+  }
+
+  /* Step indicator */
+  .step-item {
+    @apply flex items-center gap-2 text-sm;
+  }
+  .step-dot {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
+           flex-shrink-0 transition-all duration-300;
+  }
+  .step-dot.active   { @apply bg-brand-800 text-white shadow-glow; }
+  .step-dot.complete { @apply bg-emerald-500 text-white; }
+  .step-dot.pending  { @apply bg-slate-200 text-slate-500; }
+
+  /* Checkbox / Radio styled */
+  .cc-check-option {
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-lg border border-slate-200
+           bg-slate-50 cursor-pointer text-sm transition-all duration-150
+           hover:border-brand-300 hover:bg-brand-50;
+  }
+  .cc-check-option input { @apply hidden; }
+  .cc-check-option.selected {
+    @apply border-brand-400 bg-brand-50 text-brand-800 font-medium;
+  }
+
+  /* AI Status indicator */
+  .ai-status {
+    @apply flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold;
+  }
+  .ai-status.disponivel  { @apply bg-emerald-100 text-emerald-700; }
+  .ai-status.processando { @apply bg-amber-100 text-amber-700; }
+  .ai-status.indisponivel { @apply bg-red-100 text-red-600; }
+  .ai-status.revisado    { @apply bg-brand-100 text-brand-700; }
+
+  /* Contract preview */
+  .contract-preview {
+    @apply bg-white border border-slate-200 rounded-2xl p-8 font-serif text-sm
+           leading-relaxed text-slate-900 max-h-[75vh] overflow-y-auto shadow-card-md;
+  }
+}
+
+/* ── ANIMAÇÕES ───────────────────────────────────────────────── */
+.animate-in { animation: fadeIn .25s ease forwards; }
+
+/* ── CONTRATO — ESTILOS DO DOCUMENTO ─────────────────────────── */
+.contract-body h1.contract-title {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #0f2f4e;
+  border-bottom: 2.5px solid #d4a843;
+  padding-bottom: 10px;
+  margin-bottom: 6px;
+  font-family: Georgia, serif;
+}
+
+/* Cards de partes contratantes */
+.contract-body .partes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.contract-body .parte-card {
+  border: 1.5px solid #e2e8f0;
+  border-top: 3px solid #0f2f4e;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #f8fafc;
+}
+.contract-body .parte-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #1a5585;
+  margin-bottom: 6px;
+}
+.contract-body .parte-nome {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: #0f2f4e;
+  margin-bottom: 4px;
+}
+.contract-body .parte-info {
+  font-size: 0.76rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 2px;
+}
+.contract-body .parte-rep {
+  font-size: 0.76rem;
+  color: #334155;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #e2e8f0;
+}
+.contract-body .partes-intro {
+  font-size: 0.8rem;
+  color: #475569;
+  font-style: italic;
+  text-align: justify;
+  margin-top: 10px;
+  line-height: 1.65;
+}
+.contract-body .contract-meta {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-bottom: 28px;
+}
+.contract-body section { margin-bottom: 22px; }
+.contract-body h2 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #1a5585;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2ecf5;
+}
+.contract-body .clausula {
+  padding-left: 14px;
+  border-left: 3px solid #dce9f5;
+}
+.contract-body .clausula p {
+  margin-bottom: 8px;
+  text-align: justify;
+  line-height: 1.75;
+  font-size: 0.83rem;
+}
+.contract-body .signatures-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 32px;
+}
+.contract-body .signature-block {
+  text-align: center;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.contract-body .signature-block .signature-space {
+  height: 80px; /* espaço generoso para assinatura manuscrita */
+}
+.contract-body .signature-block .signature-line {
+  height: 1px;
+  background: #0f2f4e;
+  margin-bottom: 8px;
+}
+.contract-body .signature-section {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.83rem;
+}
+
+/* ── PRINT ───────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+  .contract-body .clausula p { font-size: 10.5pt; }
+}
+
+/* ── REVISÃO DA IA NO CONTRATO ───────────────────────────────── */
+.contract-body .ia-review-section {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 2px dashed #d4a843;
+  background: #fffbf0;
+  border-radius: 8px;
+  padding: 16px;
+}
+.contract-body .ia-review-section h2 {
+  color: #92640a;
+  background: #fff8e6;
+  border-left-color: #d4a843;
+  font-size: 0.75rem;
+}
+.contract-body .ia-improvement {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: white;
+  border: 1px solid #f0d080;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.65;
+  color: #334155;
+}
+.contract-body .ia-improvement strong {
+  color: #92640a;
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
