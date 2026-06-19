@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
+import { traduzirErroSupabase } from '@/lib/errorMessages';
 import { Eye, EyeOff, Shield, Zap, Lock } from 'lucide-react';
 
 export default function LoginPage() {
@@ -23,10 +24,7 @@ export default function LoginPage() {
         password: form.password,
       });
       if (error) {
-        toast.error(error.message === 'Invalid login credentials'
-          ? 'E-mail ou senha incorretos.'
-          : error.message
-        );
+        toast.error(traduzirErroSupabase(error.message));
         return;
       }
       toast.success('Bem-vindo(a) ao ContractCore!');

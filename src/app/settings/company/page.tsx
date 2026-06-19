@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { maskCNPJ, maskCPF, maskPhone, maskCEP, capitalizeName, onlyDigits } from '@/lib/masks';
 import toast from 'react-hot-toast';
+import { traduzirErroSupabase } from '@/lib/errorMessages';
 import { Building2, Upload, Save, Search, CheckCircle } from 'lucide-react';
 import clsx from 'clsx';
 import type { Company } from '@/types';
@@ -150,7 +151,7 @@ function CompanySettingsInner() {
         window.location.reload();
       }
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar. Tente novamente.');
+      toast.error(traduzirErroSupabase(err.message) || 'Erro ao salvar. Tente novamente.');
     } finally {
       setSaving(false);
     }
