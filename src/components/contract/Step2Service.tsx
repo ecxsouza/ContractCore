@@ -252,7 +252,7 @@ export function Step2Service({ data, company, profissao, onChange, onBack, onNex
               className="cc-input"
               value={data.local_prestacao}
               onChange={e => onChange({ local_prestacao: e.target.value })}
-              placeholder={`${company.logradouro || 'Rua'}, ${company.numero || '0'} — ${company.cidade || 'Cidade'}/${company.uf || 'UF'}`}
+              placeholder={`${company.logradouro || 'Rua'}, ${company.numero || '0'} - ${company.bairro || 'Bairro'} - ${company.cep || 'CEP'} - ${company.cidade || 'Cidade'} - ${company.uf || 'UF'}`}
             />
           </div>
 

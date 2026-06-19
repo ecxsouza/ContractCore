@@ -103,12 +103,8 @@ export function AppLayout({ children, company }: AppLayoutProps) {
         </div>
       </nav>
 
-      {/* Empresa + logout */}
-      <div className="px-3 py-4 border-t border-white/10 space-y-2">
-        <div className="px-3 py-2.5 rounded-xl bg-white/8">
-          <div className="text-white text-xs font-semibold truncate">{company.nome_fantasia}</div>
-          <div className="text-white/40 text-2xs truncate">{company.cnpj}</div>
-        </div>
+      {/* Logout */}
+      <div className="px-3 py-4 border-t border-white/10">
         <button onClick={handleLogout}
           className="flex items-center gap-2 w-full px-3 py-2 text-white/50 hover:text-white hover:bg-white/8 rounded-xl text-sm transition-all">
           <LogOut className="w-4 h-4" /> Sair
