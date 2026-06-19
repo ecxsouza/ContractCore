@@ -302,29 +302,39 @@ Se houver mais de 3 problemas, priorize os 3 mais graves. Seja específico e dir
 export async function suggestContractObject(profissao: string, especialidade?: string): Promise<string> {
   const isDescricao = especialidade === 'descricao_detalhada';
   const prompt = isDescricao
-    ? `Escreva a DESCRIÇÃO DETALHADA DE SERVIÇOS para contrato de prestação com ${profissao} em clínica de saúde. 2 parágrafos. Texto corrido. Sem títulos ou asteriscos. Mencione autonomia técnica.`
-    : `Escreva o OBJETO de contrato de prestação de serviços autônoma para ${profissao} em clínica de psicologia. 2 parágrafos. Texto corrido. Sem títulos ou asteriscos. Autonomia técnica. Sem CLT.`;
+    ? `Escreva a DESCRIÇÃO DETALHADA DE SERVIÇOS para contrato de prestação com ${profissao} em clínica de saúde. 2 parágrafos. Texto corrido, em prosa. NUNCA use JSON, markdown, títulos, listas ou asteriscos — apenas o texto puro, pronto para colar direto no campo do contrato. Mencione autonomia técnica.`
+    : `Escreva o OBJETO de contrato de prestação de serviços autônoma para ${profissao} em clínica de psicologia. 2 parágrafos. Texto corrido, em prosa. NUNCA use JSON, markdown, títulos, listas ou asteriscos — apenas o texto puro, pronto para colar direto no campo do contrato. Autonomia técnica. Sem CLT.`;
 
   const response = await client.messages.create({
     model:      getModel(),
-    max_tokens: 500,
-    system:     SYSTEM_PROMPT,
+    max_tokens: 700,
+    // Prompt isolado — sem o SYSTEM_PROMPT da mesa técnica, que instrui "retorne JSON"
+    // e contamina esta resposta de texto livre.
+    system:     'Você escreve cláusulas contratuais em português brasileiro, em texto corrido (prosa), sem nenhuma formatação, JSON, markdown ou estrutura de dados. Apenas o texto final, pronto para uso.',
     messages:   [{ role: 'user', content: prompt }],
   });
 
   const c = response.content[0];
   if (c.type !== 'text') return '';
-  // Remove fences de markdown/JSON, asteriscos e títulos
-  return c.text
+
+  let texto = c.text
     .replace(/^```[a-z]*\s*/gim, '')   // ```json ou ``` no início
     .replace(/```\s*$/gim, '')          // ``` no final
-    .replace(/^\{[\s\S]*?\}\s*/m, (match) => {
-      // Se a resposta for um objeto JSON, extrair o valor do campo
-      try {
-        const parsed = JSON.parse(match.trim());
-        return Object.values(parsed)[0] as string || match;
-      } catch { return match; }
-    })
+    .trim();
+
+  // Se ainda assim vier como objeto JSON, extrai e concatena todos os valores de texto
+  // (cobre o caso em que a IA divide a resposta em múltiplos campos, ex: descricao_servicos + descricao_autonomia)
+  if (texto.startsWith('{') && texto.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(texto);
+      const valores = Object.values(parsed).filter((v): v is string => typeof v === 'string');
+      if (valores.length > 0) texto = valores.join('\n\n');
+    } catch {
+      // Não era JSON válido — segue com o texto como está
+    }
+  }
+
+  return texto
     .replace(/\*\*/g, '')
     .replace(/^#{1,6}\s*/gm, '')
     .trim();
