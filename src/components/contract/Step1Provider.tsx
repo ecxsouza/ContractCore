@@ -191,6 +191,30 @@ export function Step1Provider({ data, onChange, onNext }: Step1Props) {
   return (
     <div className="space-y-6 animate-in">
 
+      {/* Tipo de Pessoa */}
+      <div className="cc-card p-6">
+        <div className="section-title">Tipo de Vínculo Jurídico</div>
+        <div className="grid grid-cols-3 gap-3">
+          {PESSOA_TYPES.map(tp => (
+            <button key={tp.value} type="button" onClick={() => onChange({ tipo_pessoa: tp.value })}
+              className={clsx('flex flex-col items-center gap-1 p-4 rounded-xl border-2 text-center transition-all',
+                data.tipo_pessoa === tp.value
+                  ? 'border-brand-500 bg-brand-50 text-brand-800'
+                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-200')}>
+              <span className="text-lg font-bold">{tp.label}</span>
+              <span className="text-xs opacity-70">{tp.desc}</span>
+            </button>
+          ))}
+        </div>
+        {errors.tipo_pessoa && <p className="text-red-500 text-xs mt-2">{errors.tipo_pessoa}</p>}
+        {data.tipo_pessoa === 'PF' && (
+          <div className="mt-4 flex gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
+            <span><strong>Atenção (Departamento Pessoal):</strong> PF autônomo exige cuidado especial para não caracterizar vínculo empregatício. Verifique exclusividade e autonomia real do prestador.</span>
+          </div>
+        )}
+      </div>
+
       {/* Atalho: usar prestador já cadastrado */}
       {existingProviders.length > 0 && (
         <div
@@ -237,30 +261,6 @@ export function Step1Provider({ data, onChange, onNext }: Step1Props) {
           )}
         </div>
       )}
-
-      {/* Tipo de Pessoa */}
-      <div className="cc-card p-6">
-        <div className="section-title">Tipo de Vínculo Jurídico</div>
-        <div className="grid grid-cols-3 gap-3">
-          {PESSOA_TYPES.map(tp => (
-            <button key={tp.value} type="button" onClick={() => onChange({ tipo_pessoa: tp.value })}
-              className={clsx('flex flex-col items-center gap-1 p-4 rounded-xl border-2 text-center transition-all',
-                data.tipo_pessoa === tp.value
-                  ? 'border-brand-500 bg-brand-50 text-brand-800'
-                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-200')}>
-              <span className="text-lg font-bold">{tp.label}</span>
-              <span className="text-xs opacity-70">{tp.desc}</span>
-            </button>
-          ))}
-        </div>
-        {errors.tipo_pessoa && <p className="text-red-500 text-xs mt-2">{errors.tipo_pessoa}</p>}
-        {data.tipo_pessoa === 'PF' && (
-          <div className="mt-4 flex gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
-            <span><strong>Atenção (Departamento Pessoal):</strong> PF autônomo exige cuidado especial para não caracterizar vínculo empregatício. Verifique exclusividade e autonomia real do prestador.</span>
-          </div>
-        )}
-      </div>
 
       {/* Identificação */}
       <div className="cc-card p-6">
