@@ -25,6 +25,9 @@ export function traduzirErroSupabase(message: string | undefined | null): string
   if (message.includes('Password should be at least')) {
     return 'A senha precisa ter no mínimo 8 caracteres.';
   }
+  if (message.includes('New password should be different from the old password')) {
+    return 'A nova senha deve ser diferente da senha atual.';
+  }
   if (message.includes('rate limit') || message.includes('too many requests')) {
     return 'Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.';
   }

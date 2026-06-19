@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { maskPhone, capitalizeName } from '@/lib/masks';
 import toast from 'react-hot-toast';
+import { traduzirErroSupabase } from '@/lib/errorMessages';
 import { User, Save, Lock } from 'lucide-react';
 import type { Company } from '@/types';
 
@@ -52,7 +53,7 @@ export default function ProfilePage() {
       toast.success('Senha alterada com sucesso!');
       setPassForm({ current: '', next: '', confirm: '' });
     } catch (e: any) {
-      toast.error(e.message || 'Erro ao alterar senha.');
+      toast.error(traduzirErroSupabase(e.message) || 'Erro ao alterar senha.');
     } finally { setLoadingPass(false); }
   }
 
