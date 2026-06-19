@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
-  Shield, LayoutDashboard, FileText, Plus, Settings,
+  LayoutDashboard, FileText, Plus, Settings,
   LogOut, Menu, X, Building2, Users, FileCode2,
   AlertTriangle, BarChart3, ChevronRight
 } from 'lucide-react';
@@ -50,11 +51,11 @@ export function AppLayout({ children, company }: AppLayoutProps) {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center">
-            <Shield className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+            <Image src="/logo-icon.png" alt="ContractCore Elite" width={32} height={32} className="object-contain" />
           </div>
           <div>
-            <div className="text-white font-bold text-sm leading-none">ContractCore</div>
+            <div className="text-white font-bold text-sm leading-none">ContractCore Elite</div>
             <div className="text-white/40 text-2xs leading-none mt-0.5">by Zanarole</div>
           </div>
         </div>
@@ -141,8 +142,8 @@ export function AppLayout({ children, company }: AppLayoutProps) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-brand-700" />
-            <span className="font-bold text-brand-900 text-sm">ContractCore</span>
+            <Image src="/logo-icon.png" alt="ContractCore Elite" width={20} height={20} className="object-contain" />
+            <span className="font-bold text-brand-900 text-sm">ContractCore Elite</span>
           </div>
         </header>
         <main className="flex-1 px-4 md:px-8 py-6 md:py-8 max-w-7xl mx-auto w-full">

@@ -73,6 +73,15 @@ export function capitalizeName(value: string): string {
     .join(' ');
 }
 
+// Alias semântico de capitalizeName para uso em Razão Social, Nome Fantasia e
+// campos de endereço (logradouro, complemento, bairro, cidade) — PJ, MEI e PF.
+// Reutiliza a mesma lógica de Title Case já validada, incluindo conectores
+// em minúsculo ("de", "e", "da"...) e preservação de abreviações.
+export function formatTitleCase(value: string): string {
+  if (!value) return value;
+  return capitalizeName(value);
+}
+
 // Limpar apenas dígitos
 export function onlyDigits(value: string): string {
   return value.replace(/\D/g, '');

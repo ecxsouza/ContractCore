@@ -5,7 +5,7 @@ import { CheckCircle, XCircle, ChevronRight, Search, AlertTriangle, Users, Chevr
 import type { ServiceProvider, PersonType, ProfessionType } from '@/types';
 import {
   maskCPF, maskCNPJ, maskPhone, maskCEP, maskRG, maskIE, maskISS,
-  capitalizeName, validateCPF, validateCNPJ, onlyDigits
+  capitalizeName, formatTitleCase, validateCPF, validateCNPJ, onlyDigits
 } from '@/lib/masks';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
@@ -99,11 +99,11 @@ export function Step1Provider({ data, onChange, onNext }: Step1Props) {
       if (!res.ok) { toast.error('CNPJ não encontrado na Receita Federal.'); return; }
       const d = await res.json();
       onChange({
-        nome_razao_social: d.razao_social,
-        nome_fantasia: d.nome_fantasia || '',
-        logradouro: d.logradouro, numero: d.numero,
-        complemento: d.complemento || '', bairro: d.bairro,
-        cidade: d.municipio, uf: d.uf, cep: d.cep,
+        nome_razao_social: formatTitleCase(d.razao_social),
+        nome_fantasia: formatTitleCase(d.nome_fantasia || ''),
+        logradouro: formatTitleCase(d.logradouro), numero: d.numero,
+        complemento: formatTitleCase(d.complemento || ''), bairro: formatTitleCase(d.bairro),
+        cidade: formatTitleCase(d.municipio), uf: d.uf, cep: d.cep,
         email: d.email || '', telefone: d.telefone || '',
       });
       toast.success('Dados preenchidos via CNPJ!');
@@ -193,20 +193,29 @@ export function Step1Provider({ data, onChange, onNext }: Step1Props) {
 
       {/* Atalho: usar prestador já cadastrado */}
       {existingProviders.length > 0 && (
-        <div className="cc-card p-4 border-brand-200 bg-brand-50/30">
+        <div
+          className="rounded-2xl p-4 border transition-all"
+          style={{
+            background: 'linear-gradient(135deg, #eef8ff, #f5fbff)',
+            borderColor: '#7db7e8',
+            boxShadow: '0 8px 24px rgba(30, 96, 145, 0.08)',
+          }}
+        >
           <button
             type="button"
             onClick={() => setShowProviderSelect(!showProviderSelect)}
             className="flex items-center gap-3 w-full text-left"
           >
-            <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center flex-shrink-0">
-              <Users className="w-4 h-4 text-brand-600" />
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #2f7fc4, #1e6091)' }}>
+              <Users className="w-4.5 h-4.5 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-brand-900">Usar prestador já cadastrado</p>
+              <p className="text-sm font-semibold" style={{ color: '#1e6091' }}>Usar prestador já cadastrado</p>
               <p className="text-xs text-slate-500">Carrega os dados de um profissional existente</p>
             </div>
-            <ChevronDown className={`w-4 h-4 text-brand-400 transition-transform ${showProviderSelect ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 transition-transform ${showProviderSelect ? 'rotate-180' : ''}`}
+              style={{ color: '#2f7fc4' }} />
           </button>
           {showProviderSelect && (
             <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
@@ -289,7 +298,8 @@ export function Step1Provider({ data, onChange, onNext }: Step1Props) {
             <div className="relative">
               <input className={clsx('cc-input pr-8', errors.nome_razao_social && 'error')}
                 value={data.nome_razao_social}
-                onChange={e => { onChange({ nome_razao_social: capitalizeName(e.target.value) }); touch('nome_razao_social'); }}
+                onChange={e => { onChange({ nome_razao_social: e.target.value }); touch('nome_razao_social'); }}
+                onBlur={e => onChange({ nome_razao_social: formatTitleCase(e.target.value) })}
                 placeholder="Ex: João da Silva Serviços Psicológicos Ltda" />
               <FieldStatus valid={!!data.nome_razao_social.trim()} touched={!!touched.nome_razao_social} />
             </div>
@@ -301,7 +311,9 @@ export function Step1Provider({ data, onChange, onNext }: Step1Props) {
             <div>
               <label className="cc-label">Nome Fantasia</label>
               <input className="cc-input" value={data.nome_fantasia || ''}
-                onChange={e => onChange({ nome_fantasia: e.target.value })} placeholder="Ex: Psicologia Silva" />
+                onChange={e => onChange({ nome_fantasia: e.target.value })}
+                onBlur={e => onChange({ nome_fantasia: formatTitleCase(e.target.value) })}
+                placeholder="Ex: Psicologia Silva" />
             </div>
           )}
 

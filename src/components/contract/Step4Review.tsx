@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ChevronLeft, Zap, Save, CheckCircle, AlertTriangle,
   Loader2, AlertCircle, Info, ArrowDownRight, ArrowUpRight,
@@ -193,12 +193,36 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
   // Textos editados: id → texto atual (começa com o revisado da IA)
   const [textosEditados, setTextosEditados] = useState<Record<string, string>>({});
 
-  useEffect(() => {
+  // HTML base do contrato — reage a qualquer mudança em provider, serviço,
+  // remuneração, anexos ou vigência. Corrige o bug em que anexos selecionados
+  // na aba Anexos não apareciam no contrato por o preview ter sido gerado
+  // apenas uma vez na montagem do componente.
+  const htmlBaseContrato = useMemo(() => {
     try {
-      const html = generateContractHTML(formData, company, 'CC-PREVIEW');
-      setContratoOriginal(html);
-    } catch (e) { console.error('Erro ao gerar preview:', e); }
-  }, []);
+      return generateContractHTML(formData, company, 'CC-PREVIEW');
+    } catch (e) {
+      console.error('Erro ao gerar preview:', e);
+      return '';
+    }
+  }, [
+    formData.provider,
+    formData.service,
+    formData.remuneration,
+    formData.anexos,
+    formData.vigencia_indeterminada,
+    formData.data_vigencia_inicio,
+    formData.data_vigencia_fim,
+    company,
+  ]);
+
+  useEffect(() => {
+    setContratoOriginal(htmlBaseContrato);
+    // Não sobrescreve contratoRevisado se a revisão IA já foi aceita —
+    // preserva as substituições aplicadas em handleAcceptIA.
+    if (aiPhase !== 'accepted') {
+      setContratoRevisado(htmlBaseContrato);
+    }
+  }, [htmlBaseContrato, aiPhase]);
 
   // Contrato exibido: quando aceito, usa o HTML com revisões aplicadas
   const contratoExibido = aiPhase === 'accepted' ? contratoRevisado : contratoOriginal;
@@ -299,9 +323,10 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
       toast('Atenção: foi detectado texto "TESTE" em uma cláusula aplicada. Revise antes de salvar.', { icon: '⚠️' });
     }
 
-    // Monta HTML final aplicando apenas as revisões individualmente aprovadas
+    // Monta HTML final aplicando apenas as revisões individualmente aprovadas,
+    // sobre a base mais atual do contrato (reflete anexos/dados recém-alterados).
     const htmlFinal = aplicarRevisoesNoHtml(
-      contratoOriginal,
+      htmlBaseContrato,
       clausulasRevisadas,
       aprovadas,
       textosEditados,
