@@ -42,11 +42,12 @@ export function TemplatesClient({ company, templates }: Props) {
   const [showDetail, setShowDetail]   = useState<ContractTemplate | null>(null);
   const [deleting, setDeleting]       = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ContractTemplate | null>(null);
+  const [confirmUse, setConfirmUse]       = useState<ContractTemplate | null>(null);
 
   const sistemaTpls  = templates.filter(t => t.is_sistema);
   const empresaTpls  = templates.filter(t => !t.is_sistema);
 
-  async function handleUseTemplate(template: ContractTemplate) {
+  async function executeUseTemplate(template: ContractTemplate) {
     // Incrementar contador de uso
     await supabase
       .from('contract_templates')
@@ -56,6 +57,10 @@ export function TemplatesClient({ company, templates }: Props) {
     // Redirecionar para novo contrato com template pré-selecionado
     router.push(`/contracts/new?template_id=${template.id}`);
     toast.success(`Template "${template.nome}" carregado!`);
+  }
+
+  function handleUseTemplate(template: ContractTemplate) {
+    setConfirmUse(template);
   }
 
   async function handleDelete(id: string) {
@@ -189,6 +194,43 @@ export function TemplatesClient({ company, templates }: Props) {
           </div>
         )}
       </div>
+
+      {/* Modal de aviso — revisar com atenção antes de usar o template */}
+      {confirmUse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-card-lg p-7 max-w-md w-full animate-slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5.5 h-5.5 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-brand-900">Este é um modelo</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{confirmUse.nome}</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-700 leading-relaxed mb-5">
+              Os campos pré-preenchidos refletem a <strong>prática habitual de mercado</strong> para
+              esta profissão, mas precisam ser revisados com atenção à realidade específica deste
+              contrato — carga horária, valores, regras de cancelamento, conselho profissional e
+              demais condições devem ser conferidos e ajustados antes de finalizar.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmUse(null)}
+                className="flex-1 py-2 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { const t = confirmUse; setConfirmUse(null); executeUseTemplate(t); }}
+                className="flex-1 py-2 px-4 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-sm font-semibold transition-colors"
+              >
+                Entendi, usar template
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmação de exclusão */}
       {confirmDelete && (

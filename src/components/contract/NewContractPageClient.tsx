@@ -54,19 +54,24 @@ export function NewContractPageClient({ company, templateData }: NewContractPage
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState<ContractFormData>(() => {
-    const tplService     = (templateData?.service_data     as Partial<ContractFormData['service']>)     || {};
-    const tplRemuneration= (templateData?.remuneration_data as Partial<ContractFormData['remuneration']>) || {};
-    const tplAnexos      = (templateData?.anexos_padrao    as ContractFormData['anexos'])               || EMPTY_FORM.anexos;
+    const tplProvider    = (templateData?.provider_data     as Partial<ContractFormData['provider']>)     || {};
+    const tplService     = (templateData?.service_data      as Partial<ContractFormData['service']>)      || {};
+    const tplRemuneration= (templateData?.remuneration_data  as Partial<ContractFormData['remuneration']>) || {};
+    const tplAnexos      = (templateData?.anexos_padrao     as ContractFormData['anexos'])                || EMPTY_FORM.anexos;
 
     return {
       ...EMPTY_FORM,
       anexos: tplAnexos.length > 0 ? tplAnexos : EMPTY_FORM.anexos,
+      provider: {
+        ...EMPTY_FORM.provider,
+        ...tplProvider,
+      },
       service: {
         ...EMPTY_FORM.service,
         ...tplService,
-        local_prestacao: company.logradouro
+        local_prestacao: tplService.local_prestacao || (company.logradouro
           ? `${company.logradouro}, ${company.numero}, ${company.bairro}, ${company.cidade}/${company.uf}`
-          : '',
+          : ''),
       },
       remuneration: {
         ...EMPTY_FORM.remuneration,

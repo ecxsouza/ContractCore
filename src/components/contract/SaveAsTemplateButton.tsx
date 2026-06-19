@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { BookmarkPlus, Check, X, Loader2 } from 'lucide-react';
+import { BookmarkPlus, Check, X, Loader2, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
 
 interface Props {
-  contractId:  string;
-  profissao:   string;
-  providerNome: string;
+  contractId:           string;
+  profissao:            string;
+  providerNome:         string;
+  providerEspecialidade?: string;
+  providerConselho?:      string;
 }
 
 const PROFISSAO_LABELS: Record<string, string> = {
@@ -22,7 +24,10 @@ const PROFISSAO_LABELS: Record<string, string> = {
   outro:          'Outro',
 };
 
-export function SaveAsTemplateButton({ contractId, profissao, providerNome }: Props) {
+export function SaveAsTemplateButton({
+  contractId, profissao, providerNome,
+  providerEspecialidade, providerConselho,
+}: Props) {
   const supabase = createClient();
   const [showModal, setShowModal] = useState(false);
   const [saving,    setSaving]    = useState(false);
@@ -34,7 +39,7 @@ export function SaveAsTemplateButton({ contractId, profissao, providerNome }: Pr
   async function handleSave() {
     setSaving(true);
     try {
-      // Buscar dados do contrato
+      // Buscar dados do contrato (objeto, remuneração, anexos)
       const { data: contract } = await supabase
         .from('contracts')
         .select('service_details, remuneration, anexos, company_id')
@@ -44,20 +49,26 @@ export function SaveAsTemplateButton({ contractId, profissao, providerNome }: Pr
       if (!contract) throw new Error('Contrato não encontrado');
 
       const { error } = await supabase.from('contract_templates').insert({
-        company_id:       contract.company_id,
-        profissao:        profissao,
-        nome:             nome.trim(),
-        descricao:        descricao.trim() || null,
-        is_sistema:       false,
-        service_data:     contract.service_details  || {},
-        remuneration_data:contract.remuneration     || {},
-        anexos_padrao:    contract.anexos            || [],
-        uso_count:        0,
+        company_id:        contract.company_id,
+        profissao:         profissao,
+        nome:              nome.trim(),
+        descricao:         descricao.trim() || null,
+        is_sistema:        false,
+        // Dados profissionais — pré-preenchem a aba Prestador ao usar o template
+        provider_data: {
+          profissao,
+          especialidade:         providerEspecialidade || undefined,
+          conselho_profissional: providerConselho       || undefined,
+        },
+        service_data:      contract.service_details || {},
+        remuneration_data: contract.remuneration    || {},
+        anexos_padrao:     contract.anexos           || [],
+        uso_count:         0,
       });
 
       if (error) throw error;
 
-      toast.success('Template salvo! Disponível em Configurações → Templates.');
+      toast.success('Template salvo! Disponível em Templates.');
       setShowModal(false);
     } catch (e: any) {
       toast.error(e.message || 'Erro ao salvar template.');
@@ -88,8 +99,17 @@ export function SaveAsTemplateButton({ contractId, profissao, providerNome }: Pr
 
             <div className="space-y-4">
               <div className="p-3 bg-brand-50 border border-brand-200 rounded-xl text-xs text-brand-800">
-                O template será salvo com o objeto, remuneração e anexos deste contrato.
+                O template será salvo com profissão, especialidade, conselho profissional,
+                objeto, remuneração e anexos deste contrato.
                 Aparecerá na página <strong>Templates</strong> para reutilizar em contratos futuros.
+              </div>
+
+              <div className="flex gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>
+                  Templates são pontos de partida baseados na prática de mercado. Sempre revise
+                  cada campo de acordo com a realidade do novo contrato antes de finalizar.
+                </span>
               </div>
 
               <div>

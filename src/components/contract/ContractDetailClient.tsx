@@ -24,6 +24,8 @@ interface Props {
   emailConfigured?:     boolean;
   providerProfissao?:   string;
   providerNome?:        string;
+  providerEspecialidade?: string | null;
+  providerConselho?:      string | null;
   assinadoContratante?: boolean;
   assinadoPrestador?:   boolean;
   iaRevisado:           boolean;
@@ -38,6 +40,7 @@ export function ContractDetailClient({
   providerEmail, emailConfigured,
   assinadoContratante = false, assinadoPrestador = false,
   providerProfissao = 'outro', providerNome = '',
+  providerEspecialidade, providerConselho,
   iaRevisado, iaRevisadoEm, iaSugestoes, notasInternas
 }: Props) {
   const router   = useRouter();
@@ -369,6 +372,8 @@ export function ContractDetailClient({
                 contractId={contractId}
                 profissao={providerProfissao}
                 providerNome={providerNome}
+                providerEspecialidade={providerEspecialidade ?? undefined}
+                providerConselho={providerConselho ?? undefined}
               />
               {/* Assinar — só exibe se ainda há partes sem assinar */}
               {!(assinadoContratante && assinadoPrestador) && (

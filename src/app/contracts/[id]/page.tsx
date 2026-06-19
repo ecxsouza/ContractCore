@@ -137,6 +137,8 @@ export default async function ContractDetailPage({
           assinadoPrestador={!!contract.assinado_prestador}
           providerProfissao={provider?.profissao ?? 'outro'}
           providerNome={provider?.nome_razao_social ?? ''}
+          providerEspecialidade={provider?.especialidade}
+          providerConselho={provider?.conselho_profissional}
           iaRevisado={contract.ia_revisado}
           iaRevisadoEm={contract.ia_revisado_em}
           iaSugestoes={contract.ia_sugestoes}

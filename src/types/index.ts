@@ -303,6 +303,7 @@ export interface ContractTemplate {
   nome:              string;
   descricao?:        string;
   is_sistema:        boolean;
+  provider_data?:    Partial<Pick<ServiceProvider, 'profissao' | 'profissao_descricao' | 'especialidade' | 'conselho_profissional'>>;
   service_data:      Partial<ServiceDetails>;
   remuneration_data: Partial<RemunerationDetails>;
   anexos_padrao:     AnexoType[];
