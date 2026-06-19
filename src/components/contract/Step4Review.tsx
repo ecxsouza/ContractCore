@@ -217,11 +217,25 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
 
   useEffect(() => {
     setContratoOriginal(htmlBaseContrato);
-    // Não sobrescreve contratoRevisado se a revisão IA já foi aceita —
-    // preserva as substituições aplicadas em handleAcceptIA.
+
     if (aiPhase !== 'accepted') {
       setContratoRevisado(htmlBaseContrato);
+      return;
     }
+
+    // Revisão IA já aceita: se o usuário alterou algo depois (ex: vigência,
+    // anexos), reaplica as mesmas revisões aprovadas sobre a NOVA base —
+    // evita salvar um ia_contrato_html desatualizado (ex: ainda com
+    // "prazo indeterminado" após a vigência ter sido alterada para determinada).
+    const htmlAtualizado = aplicarRevisoesNoHtml(
+      htmlBaseContrato,
+      clausulasRevisadas,
+      aprovadas,
+      textosEditados,
+    );
+    setContratoRevisado(htmlAtualizado);
+    onChange({ ia_contrato_html: htmlAtualizado });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [htmlBaseContrato, aiPhase]);
 
   // Contrato exibido: quando aceito, usa o HTML com revisões aplicadas

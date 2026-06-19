@@ -86,9 +86,27 @@ export function generateContractHTML(
     ? 'A CONTRATADA poderá prestar serviços a outras pessoas físicas ou jurídicas, desde que não haja conflito de interesses direto com as atividades da CONTRATANTE. Fica vedado, durante a vigência deste contrato, o atendimento particular de pacientes ativos encaminhados ou atendidos exclusivamente pela CONTRATANTE, salvo autorização expressa e por escrito.'
     : 'O presente contrato NÃO estabelece exclusividade. O PRESTADOR poderá exercer livremente sua atividade profissional junto a outras pessoas físicas ou jurídicas, desde que não haja conflito de interesses ou violação do sigilo profissional.';
 
-  const vigencia = formData.vigencia_indeterminada
-    ? 'O presente contrato vigora por prazo <strong>indeterminado</strong>'
-    : `O presente contrato vigora de <strong>${formatDateLong(formData.data_vigencia_inicio)}</strong> até <strong>${formatDateLong(formData.data_vigencia_fim)}</strong>`;
+  // Vigência — cobre os 3 cenários possíveis:
+  // (1) indeterminada; (2) determinada com início e fim; (3) determinada só com fim
+  // (usuário pode preencher apenas a data final, sem reabrir a data de início).
+  const temInicio = !!formData.data_vigencia_inicio;
+  const temFim    = !!formData.data_vigencia_fim;
+
+  let vigenciaTexto: string;
+  if (formData.vigencia_indeterminada) {
+    vigenciaTexto = 'O presente contrato vigora por prazo <strong>indeterminado</strong>, podendo ser rescindido por qualquer das partes mediante notificação prévia por escrito com antecedência mínima de <strong>30 (trinta) dias</strong>.';
+  } else if (temInicio && temFim) {
+    vigenciaTexto = `O presente contrato vigorará de <strong>${formatDateLong(formData.data_vigencia_inicio)}</strong> até <strong>${formatDateLong(formData.data_vigencia_fim)}</strong>, podendo ser renovado por acordo escrito entre as partes.`;
+  } else if (temFim) {
+    vigenciaTexto = `O presente contrato vigorará até <strong>${formatDateLong(formData.data_vigencia_fim)}</strong>, a contar da data de sua assinatura, podendo ser renovado por acordo escrito entre as partes.`;
+  } else {
+    // Determinada mas sem nenhuma data preenchida — evita texto quebrado
+    vigenciaTexto = 'O presente contrato vigorará pelo prazo a ser definido entre as partes, podendo ser renovado por acordo escrito.';
+  }
+
+  const vigenciaRescisao = formData.vigencia_indeterminada
+    ? ''
+    : ' Antes do término da vigência, qualquer das partes poderá rescindir o contrato mediante notificação prévia por escrito com antecedência mínima de <strong>30 (trinta) dias</strong>, salvo hipótese de rescisão imediata por falta grave.';
 
   const FORMA_PAGAMENTO_LABEL: Record<string, string> = {
     pix: 'PIX', transferencia: 'transferência', boleto: 'boleto', dinheiro: 'dinheiro', outro: 'outro',
@@ -305,7 +323,7 @@ ${service.regra_redes_sociais ? `<p><strong>15.3. Redes sociais:</strong> ${serv
 <section>
 <h2>CLÁUSULA 17ª — VIGÊNCIA E RESCISÃO</h2>
 <div class="clausula">
-<p><strong>17.1.</strong> ${vigencia}, podendo ser rescindido por qualquer das partes mediante notificação prévia por escrito com antecedência mínima de <strong>30 (trinta) dias</strong>.</p>
+<p><strong>17.1.</strong> ${vigenciaTexto}${vigenciaRescisao}</p>
 <p><strong>17.2.</strong> A rescisão não gera direito a qualquer verba rescisória de natureza trabalhista.</p>
 <p><strong>17.3. Rescisão Imediata por Falta Grave:</strong></p>
 <p>a) Violação de sigilo profissional ou dados pessoais de pacientes;</p>
