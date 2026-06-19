@@ -54,8 +54,8 @@ export default function LoginPage() {
               <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
-              <span className="text-white font-bold text-lg tracking-tight">ContractCore</span>
-              <div className="text-white/50 text-xs tracking-widest uppercase">by Bem Estar Psicologia</div>
+              <span className="text-white font-bold text-lg tracking-tight">ContractCore Elite</span>
+              <div className="text-white/50 text-xs tracking-widest uppercase">by Zanarole</div>
             </div>
           </div>
 
