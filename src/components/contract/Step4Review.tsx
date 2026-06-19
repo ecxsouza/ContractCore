@@ -271,7 +271,7 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
 
   // Detecta placeholders/textos provisórios que não podem ir para o contrato final
   function detectarPlaceholders(textos: string[]): { bloqueantes: string[]; avisos: string[] } {
-    const PADRAO_BLOQUEANTE = /\[DEFINIR\]|\[INFORMAR\]|\[PREENCHER\]|\{\{.*?\}\}/gi;
+    const PADRAO_BLOQUEANTE = /\[DEFINIR\]|\[INFORMAR\]|\[PREENCHER\]|\{\{.*?\}\}|\bXXX\b/gi;
     const PADRAO_AVISO       = /\bTESTE\b/gi;
     const bloqueantes: string[] = [];
     const avisos: string[] = [];
@@ -333,6 +333,19 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
     onChange({ ia_aceita: false, ia_contrato_html: undefined });
     setAiPhase('rejected');
     toast('Revisão rejeitada — contrato original mantido.');
+  }
+
+  // Barreira defensiva: revalida o HTML final que será salvo (caso já tenha
+  // passado por handleAcceptIA anteriormente) antes de disparar onSave.
+  function handleSaveClick() {
+    if (formData.ia_aceita && formData.ia_contrato_html) {
+      const { bloqueantes } = detectarPlaceholders([formData.ia_contrato_html]);
+      if (bloqueantes.length > 0) {
+        toast.error('Há campos pendentes ou provisórios na cláusula revisada. Edite antes de salvar o contrato final.');
+        return;
+      }
+    }
+    onSave();
   }
 
   function handlePrint() {
@@ -706,7 +719,7 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
         <button type="button" onClick={onBack} className="btn-secondary">
           <ChevronLeft className="w-4 h-4" /> Voltar
         </button>
-        <button type="button" onClick={onSave} disabled={saving} className="btn-primary">
+        <button type="button" onClick={handleSaveClick} disabled={saving} className="btn-primary">
           {saving ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</>
           ) : (

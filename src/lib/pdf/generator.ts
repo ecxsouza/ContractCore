@@ -21,12 +21,39 @@ function formatarEndereco(opts: {
   return `${ruaNumero} - ${bairro || 'Bairro'} - ${cep || 'CEP'} - ${cidade || 'Cidade'} - ${uf || 'UF'}`;
 }
 
+// Ordem canônica dos anexos — idêntica à ordem exibida na tela (ANEXOS_INFO em Step4Review.tsx).
+// Garante que a numeração de letras (Anexo A, B, C...) seja sempre estável e previsível,
+// independentemente da ordem em que o usuário clicou para selecionar cada anexo.
+const ORDEM_CANONICA_ANEXOS: AnexoType[] = [
+  'confidencialidade',
+  'lgpd',
+  'prontuarios',
+  'uso_estrutura',
+  'politica_agenda',
+  'sem_vinculo_clt',
+  'checklist_pj_mei',
+  'checklist_pejotizacao',
+  'checklist_conselho',
+  'ciencia_etica',
+];
+
+// Normaliza a lista de anexos selecionados: remove duplicados, ignora valores desconhecidos
+// e reordena conforme ORDEM_CANONICA_ANEXOS — garantindo que nenhum anexo selecionado se perca.
+function normalizarAnexos(anexos: AnexoType[]): AnexoType[] {
+  const selecionados = new Set(anexos || []);
+  return ORDEM_CANONICA_ANEXOS.filter(a => selecionados.has(a));
+}
+
 export function generateContractHTML(
   formData: ContractFormData,
   company: Company,
   numeroContrato: string
 ): string {
-  const { provider, service, remuneration, anexos } = formData;
+  const { provider, service, remuneration, anexos: anexosSelecionados } = formData;
+  // Normaliza: remove duplicados, ignora IDs inválidos, ordena conforme a tela.
+  // Isso garante que TODOS os anexos selecionados cheguem ao contrato final,
+  // na mesma ordem em que aparecem na aba Anexos do wizard.
+  const anexos = normalizarAnexos(anexosSelecionados);
 
   const nomeContratada = provider.nome_razao_social;
   const tipoPessoa = provider.tipo_pessoa;
