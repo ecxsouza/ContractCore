@@ -52,6 +52,15 @@ const ANEXOS_INFO = [
 
 // ── Aplicar revisões aprovadas no HTML via data-clause-key ────────
 
+// Remove numeração inicial duplicada que a IA às vezes inclui no texto
+// revisado (ex: "1.1. A CONTRATADA..."), já que o HTML do contrato já tem
+// o prefixo "1.1." fixo antes do trecho substituível. Remove apenas no
+// início do texto — não afeta números, datas ou valores no meio da frase.
+function limparNumeracaoInicialClausula(texto: string): string {
+  if (!texto) return texto;
+  return texto.replace(/^\s*\d+(\.\d+)*\.\s*/, '').trim();
+}
+
 function aplicarRevisoesNoHtml(
   htmlOriginal: string,
   clausulas:    ClausulaRevisada[],
@@ -62,7 +71,8 @@ function aplicarRevisoesNoHtml(
 
   clausulas.forEach((cl) => {
     if (!aprovadas[cl.id]) return;                // só aplica as aprovadas
-    const textoFinal = textos[cl.id] ?? cl.texto_revisado;
+    const textoBruto = textos[cl.id] ?? cl.texto_revisado;
+    const textoFinal = limparNumeracaoInicialClausula(textoBruto);
     if (!textoFinal || textoFinal === cl.texto_original) return;
 
     // Substituição por data-clause-key — confiável, sem depender do título da IA
@@ -192,6 +202,8 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
   const [aprovadas,  setAprovadas]  = useState<Record<string, boolean>>({});
   // Textos editados: id → texto atual (começa com o revisado da IA)
   const [textosEditados, setTextosEditados] = useState<Record<string, string>>({});
+  // Modal de bloqueio: revisão IA aplicada individualmente, mas não aceita oficialmente
+  const [showPendingIAModal, setShowPendingIAModal] = useState(false);
 
   // HTML base do contrato — reage a qualquer mudança em provider, serviço,
   // remuneração, anexos ou vigência. Corrige o bug em que anexos selecionados
@@ -377,6 +389,15 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
   // Barreira defensiva: revalida o HTML final que será salvo (caso já tenha
   // passado por handleAcceptIA anteriormente) antes de disparar onSave.
   function handleSaveClick() {
+    // Há cláusulas marcadas como "Aplicar" individualmente, mas o usuário
+    // ainda não clicou em "Aceitar revisão" — bloqueia para não perder a
+    // intenção do usuário ao salvar o contrato original por engano.
+    const temRevisaoPendente = Object.values(aprovadas).some(Boolean) && aiPhase !== 'accepted';
+    if (temRevisaoPendente) {
+      setShowPendingIAModal(true);
+      return;
+    }
+
     if (formData.ia_aceita && formData.ia_contrato_html) {
       const { bloqueantes } = detectarPlaceholders([formData.ia_contrato_html]);
       if (bloqueantes.length > 0) {
@@ -431,6 +452,38 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
                 9 especialistas revisando cláusulas, riscos trabalhistas, fiscais, LGPD e CFP/CRP.
               </p>
               <p className="text-brand-600 text-xs mt-3 font-medium">⏱ Aguarde até 45 segundos</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: revisão IA aplicada individualmente, mas não aceita oficialmente */}
+      {showPendingIAModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-card-lg p-7 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5.5 h-5.5 text-amber-500" />
+              </div>
+              <h3 className="font-bold text-brand-900 text-lg">Revisão IA não confirmada</h3>
+            </div>
+            <p className="text-sm text-slate-700 leading-relaxed mb-6">
+              Existem revisões da IA aplicadas, mas ainda não aceitas no contrato final.
+              Para salvar, clique em <strong>"Aceitar revisão"</strong> ou desfaça as revisões aplicadas.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPendingIAModal(false)}
+                className="flex-1 py-2 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { setShowPendingIAModal(false); setActiveTab('revisao'); }}
+                className="flex-1 py-2 px-4 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-sm font-semibold transition-colors"
+              >
+                Voltar para revisão
+              </button>
             </div>
           </div>
         </div>

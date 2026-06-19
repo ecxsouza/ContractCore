@@ -278,6 +278,12 @@ export type AnexoType =
 
 export interface ContractFormData {
   provider:                Omit<ServiceProvider, 'id' | 'company_id' | 'created_at' | 'updated_at'>;
+  // ID do prestador quando os dados vieram de "Usar prestador já cadastrado".
+  // Evita duplicar o registro em service_providers ao salvar o contrato.
+  // Deve ser limpo (undefined) sempre que o usuário editar manualmente os
+  // dados do prestador depois de selecioná-lo, para forçar nova checagem
+  // de duplicidade por CPF/CNPJ no backend.
+  provider_id_selecionado?: string;
   service:                 ServiceDetails;
   remuneration:            RemunerationDetails;
   anexos:                  AnexoType[];

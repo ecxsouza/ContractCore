@@ -63,36 +63,81 @@ export async function POST(request: NextRequest) {
   const { formData } = body as { formData: ContractFormData };
   const providerRaw = formData.provider as any;
 
-  // Montar payload apenas com campos do banco
-  const providerPayload: Record<string, any> = { company_id: company.id };
-  PROVIDER_DB_FIELDS.forEach(field => {
-    if (field === 'company_id') return;
-    if (field === 'telefone') {
-      providerPayload.telefone = providerRaw.celular || providerRaw.telefone || '';
-    } else if (providerRaw[field] !== undefined && providerRaw[field] !== null && providerRaw[field] !== '') {
-      providerPayload[field] = providerRaw[field];
+  // ── Reutilização de prestador existente (evita duplicação) ─────────
+  // 1) Se o usuário selecionou "Usar prestador já cadastrado", reutiliza
+  //    o ID diretamente (validando que pertence a esta empresa).
+  // 2) Caso contrário, antes de criar um novo registro, verifica se já
+  //    existe prestador com o mesmo CPF (PF) ou CNPJ (PJ/MEI) cadastrado
+  //    nesta empresa, e reutiliza se encontrar — e-mail é fallback apenas
+  //    quando não há documento informado.
+  let provider: any = null;
+
+  if (formData.provider_id_selecionado) {
+    const { data: existente } = await supabase
+      .from('service_providers')
+      .select('*')
+      .eq('id', formData.provider_id_selecionado)
+      .eq('company_id', company.id)
+      .single();
+    if (existente) provider = existente;
+  }
+
+  if (!provider) {
+    const documento = providerRaw.tipo_pessoa === 'PF' ? providerRaw.cpf : providerRaw.cnpj;
+    if (documento) {
+      const campoDoc = providerRaw.tipo_pessoa === 'PF' ? 'cpf' : 'cnpj';
+      const { data: porDocumento } = await supabase
+        .from('service_providers')
+        .select('*')
+        .eq('company_id', company.id)
+        .eq(campoDoc, documento)
+        .maybeSingle();
+      if (porDocumento) provider = porDocumento;
+    } else if (providerRaw.email) {
+      // Fallback secundário apenas quando não há CPF/CNPJ informado
+      const { data: porEmail } = await supabase
+        .from('service_providers')
+        .select('*')
+        .eq('company_id', company.id)
+        .eq('email', providerRaw.email)
+        .maybeSingle();
+      if (porEmail) provider = porEmail;
     }
-  });
+  }
 
-  // Garantir NOT NULL
-  if (!providerPayload.cep)        providerPayload.cep        = '';
-  if (!providerPayload.logradouro) providerPayload.logradouro = '';
-  if (!providerPayload.numero)     providerPayload.numero     = 'S/N';
-  if (!providerPayload.bairro)     providerPayload.bairro     = '';
-  if (!providerPayload.cidade)     providerPayload.cidade     = '';
-  if (!providerPayload.uf)         providerPayload.uf         = '';
-  if (!providerPayload.email)      providerPayload.email      = '';
-  if (!providerPayload.telefone)   providerPayload.telefone   = '';
+  if (!provider) {
+    // Montar payload apenas com campos do banco
+    const providerPayload: Record<string, any> = { company_id: company.id };
+    PROVIDER_DB_FIELDS.forEach(field => {
+      if (field === 'company_id') return;
+      if (field === 'telefone') {
+        providerPayload.telefone = providerRaw.celular || providerRaw.telefone || '';
+      } else if (providerRaw[field] !== undefined && providerRaw[field] !== null && providerRaw[field] !== '') {
+        providerPayload[field] = providerRaw[field];
+      }
+    });
 
-  const { data: provider, error: providerError } = await supabase
-    .from('service_providers')
-    .insert(providerPayload)
-    .select()
-    .single();
+    // Garantir NOT NULL
+    if (!providerPayload.cep)        providerPayload.cep        = '';
+    if (!providerPayload.logradouro) providerPayload.logradouro = '';
+    if (!providerPayload.numero)     providerPayload.numero     = 'S/N';
+    if (!providerPayload.bairro)     providerPayload.bairro     = '';
+    if (!providerPayload.cidade)     providerPayload.cidade     = '';
+    if (!providerPayload.uf)         providerPayload.uf         = '';
+    if (!providerPayload.email)      providerPayload.email      = '';
+    if (!providerPayload.telefone)   providerPayload.telefone   = '';
 
-  if (providerError) {
-    console.error('[contracts] provider error:', providerError);
-    return NextResponse.json({ error: providerError.message }, { status: 500 });
+    const { data: novoProvider, error: providerError } = await supabase
+      .from('service_providers')
+      .insert(providerPayload)
+      .select()
+      .single();
+
+    if (providerError) {
+      console.error('[contracts] provider error:', providerError);
+      return NextResponse.json({ error: providerError.message }, { status: 500 });
+    }
+    provider = novoProvider;
   }
 
   const { data: numResult } = await supabase

@@ -91,6 +91,13 @@ export function NewContractPageClient({ company, templateData }: NewContractPage
   const updateRemuneration = useCallback((d: any) => setForm(p => ({ ...p, remuneration: { ...p.remuneration, ...d } })), []);
   const updateRoot         = useCallback((d: any) => setForm(p => ({ ...p, ...d })),                                      []);
 
+  // Recebe o ID do prestador quando os dados vieram de "Usar prestador já
+  // cadastrado", para que /api/contracts reutilize o registro existente
+  // em vez de criar um novo (corrige duplicação de prestadores).
+  const handleSelectExistingProvider = useCallback((providerId: string | null) => {
+    setForm(p => ({ ...p, provider_id_selecionado: providerId ?? undefined }));
+  }, []);
+
   async function handleSave() {
     setSaving(true);
     try {
@@ -125,7 +132,12 @@ export function NewContractPageClient({ company, templateData }: NewContractPage
 
         <div className="mt-8">
           {step === 1 && (
-            <Step1Provider data={form.provider} onChange={updateProvider} onNext={() => goToStep(2)} />
+            <Step1Provider
+              data={form.provider}
+              onChange={updateProvider}
+              onNext={() => goToStep(2)}
+              onSelectExisting={handleSelectExistingProvider}
+            />
           )}
           {step === 2 && (
             <Step2Service

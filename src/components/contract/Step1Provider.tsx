@@ -16,7 +16,18 @@ function useScrollTop() {
 
 // Hook para buscar prestadores existentes
 function useExistingProviders() {
-  const [providers, setProviders] = useState<{ id: string; nome_razao_social: string; profissao: string; tipo_pessoa: string; email: string; telefone: string }[]>([]);
+  const [providers, setProviders] = useState<{
+    id: string; nome_razao_social: string; nome_fantasia?: string; tipo_pessoa: string;
+    cpf?: string; cnpj?: string; rg?: string;
+    profissao: string; profissao_descricao?: string; especialidade?: string;
+    conselho_profissional?: string; numero_registro_conselho?: string;
+    cep?: string; logradouro?: string; numero?: string; complemento?: string;
+    bairro?: string; cidade?: string; uf?: string;
+    email: string; telefone: string; celular?: string; telefone_fixo?: string;
+    responsavel_legal?: string; cpf_responsavel?: string;
+    estado_civil?: string; nacionalidade?: string;
+    inscricao_estadual?: string; inscricao_municipal?: string;
+  }[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -69,9 +80,13 @@ interface Step1Props {
   data: Omit<ServiceProvider, 'id' | 'company_id' | 'created_at' | 'updated_at'>;
   onChange: (data: any) => void;
   onNext: () => void;
+  // Notifica o componente pai do ID do prestador selecionado em
+  // "Usar prestador já cadastrado" (ou null ao editar manualmente depois),
+  // para evitar duplicar o registro ao salvar o contrato.
+  onSelectExisting?: (providerId: string | null) => void;
 }
 
-export function Step1Provider({ data, onChange, onNext }: Step1Props) {
+export function Step1Provider({ data, onChange, onNext, onSelectExisting }: Step1Props) {
   useScrollTop();
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors,  setErrors]  = useState<Record<string, string>>({});
@@ -184,6 +199,7 @@ export function Step1Provider({ data, onChange, onNext }: Step1Props) {
       inscricao_estadual:         (provider as any).inscricao_estadual   || '',
       inscricao_municipal:        (provider as any).inscricao_municipal  || '',
     });
+    onSelectExisting?.(provider.id);
     setShowProviderSelect(false);
     toast.success(`Dados completos de ${(provider as any).nome_razao_social} carregados!`);
   }
