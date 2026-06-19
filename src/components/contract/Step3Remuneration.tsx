@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, AlertTriangle } from 'lucide-react';
 import { maskCurrencyInput, parseCurrencyInput } from '@/lib/masks';
 import type { RemunerationDetails, RemunerationModel, PaymentMethod, PersonType } from '@/types';
 import toast from 'react-hot-toast';
@@ -96,7 +96,6 @@ export function Step3Remuneration({ data, tipoPessoa, cidade, onChange, onBack, 
   useScrollTop();
   const [errors, setErrors]         = useState<Record<string, string>>({});
   const [dataCustom, setDataCustom] = useState('');
-  const [outroForma, setOutroForma] = useState('');
 
   useEffect(() => {
     if (!data.emite_nota_fiscal) {
@@ -297,8 +296,8 @@ export function Step3Remuneration({ data, tipoPessoa, cidade, onChange, onBack, 
             {data.formas_pagamento?.includes('outro') && (
               <input
                 className="cc-input mt-2"
-                value={outroForma}
-                onChange={e => { setOutroForma(e.target.value); onChange({ valor_descricao: data.valor_descricao }); }}
+                value={data.forma_pagamento_outro_detalhe || ''}
+                onChange={e => onChange({ forma_pagamento_outro_detalhe: e.target.value })}
                 placeholder="Qual é a outra forma de pagamento? Ex: Cheque, Permuta de serviços..."
               />
             )}
@@ -324,6 +323,16 @@ export function Step3Remuneration({ data, tipoPessoa, cidade, onChange, onBack, 
             </button>
           ))}
         </div>
+        {tipoPessoa === 'PF' && data.emite_nota_fiscal === 'dispensado_mei' && (
+          <div className="flex gap-2.5 p-3 mb-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>
+              Atenção: o prestador foi classificado como <strong>Pessoa Física</strong>, mas a regra fiscal
+              selecionada é de <strong>MEI</strong>. Confirme se o vínculo jurídico correto é MEI ou ajuste
+              a regra fiscal antes da assinatura.
+            </span>
+          </div>
+        )}
         <div>
           <label className="cc-label">Retenções Fiscais Previstas</label>
           <textarea

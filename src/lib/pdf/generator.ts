@@ -10,6 +10,17 @@ function hoje(): string {
   return formatDateLong(new Date().toISOString().split('T')[0]);
 }
 
+// Formato oficial de endereço: Rua, Número[, Complemento] - Bairro - CEP - Cidade - UF
+function formatarEndereco(opts: {
+  logradouro?: string; numero?: string; complemento?: string;
+  bairro?: string; cep?: string; cidade?: string; uf?: string;
+}): string {
+  const { logradouro, numero, complemento, bairro, cep, cidade, uf } = opts;
+  if (!logradouro && !cidade) return '';
+  const ruaNumero = `${logradouro || 'Rua'}, ${numero || '0'}${complemento ? ', ' + complemento : ''}`;
+  return `${ruaNumero} - ${bairro || 'Bairro'} - ${cep || 'CEP'} - ${cidade || 'Cidade'} - ${uf || 'UF'}`;
+}
+
 export function generateContractHTML(
   formData: ContractFormData,
   company: Company,
@@ -20,21 +31,46 @@ export function generateContractHTML(
   const nomeContratada = provider.nome_razao_social;
   const tipoPessoa = provider.tipo_pessoa;
 
-  const qualificacaoContratada = tipoPessoa === 'PF'
-    ? `${nomeContratada}, ${provider.nacionalidade || 'brasileiro(a)'}, ${provider.estado_civil || ''}, ${provider.profissao_descricao || provider.profissao}, portador(a) do CPF nº ${provider.cpf || '___'} e RG nº ${provider.rg || '___'}, residente em ${provider.logradouro}, ${provider.numero}${provider.complemento ? ', ' + provider.complemento : ''}, ${provider.bairro}, ${provider.cidade}/${provider.uf}, CEP ${provider.cep}, e-mail: ${provider.email}, telefone: ${provider.telefone}`
-    : `${nomeContratada}${provider.nome_fantasia ? ', nome fantasia "' + provider.nome_fantasia + '"' : ''}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${provider.cnpj || '___'}${provider.inscricao_municipal ? ', Inscrição Municipal nº ' + provider.inscricao_municipal : ''}${provider.conselho_profissional ? ', registrada no ' + provider.conselho_profissional + ' sob o nº ' + provider.numero_registro_conselho : ''}, com sede em ${provider.logradouro}, ${provider.numero}${provider.complemento ? ', ' + provider.complemento : ''}, ${provider.bairro}, ${provider.cidade}/${provider.uf}, CEP ${provider.cep}${provider.responsavel_legal ? ', representada neste ato por ' + provider.responsavel_legal + ', CPF nº ' + provider.cpf_responsavel : ''}, e-mail: ${provider.email}, telefone: ${provider.telefone}`;
+  const enderecoProvider = formatarEndereco({
+    logradouro: provider.logradouro, numero: provider.numero, complemento: provider.complemento,
+    bairro: provider.bairro, cep: provider.cep, cidade: provider.cidade, uf: provider.uf,
+  });
+  const enderecoCompany = formatarEndereco({
+    logradouro: company.logradouro, numero: company.numero, complemento: company.complemento,
+    bairro: company.bairro, cep: company.cep, cidade: company.cidade, uf: company.uf,
+  });
 
-  const recursosStr = service.recursos_disponibilizados.length > 0
-    ? `a CONTRATANTE disponibilizará os seguintes recursos ao PRESTADOR: ${service.recursos_disponibilizados.join(', ')}.`
+  const qualificacaoContratada = tipoPessoa === 'PF'
+    ? `${nomeContratada}, ${provider.nacionalidade || 'brasileiro(a)'}, ${provider.estado_civil || ''}, ${provider.profissao_descricao || provider.profissao}, portador(a) do CPF nº ${provider.cpf || '___'} e RG nº ${provider.rg || '___'}, residente em ${enderecoProvider}, e-mail: ${provider.email}, celular: ${provider.telefone}${provider.telefone_fixo ? ', telefone: ' + provider.telefone_fixo : ''}`
+    : `${nomeContratada}${provider.nome_fantasia ? ', nome fantasia "' + provider.nome_fantasia + '"' : ''}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${provider.cnpj || '___'}${provider.inscricao_municipal ? ', Inscrição Municipal nº ' + provider.inscricao_municipal : ''}${provider.conselho_profissional ? ', registrada no ' + provider.conselho_profissional + ' sob o nº ' + provider.numero_registro_conselho : ''}, com sede em ${enderecoProvider}${provider.responsavel_legal ? ', representada neste ato por ' + provider.responsavel_legal + ', CPF nº ' + provider.cpf_responsavel : ''}, e-mail: ${provider.email}, celular: ${provider.telefone}${provider.telefone_fixo ? ', telefone: ' + provider.telefone_fixo : ''}`;
+
+  const todosRecursos = [
+    ...(service.recursos_disponibilizados || []),
+    ...(service.recursos_personalizados   || []),
+  ];
+  const recursosStr = todosRecursos.length > 0
+    ? `a CONTRATANTE disponibilizará os seguintes recursos ao PRESTADOR: ${todosRecursos.join(', ')}.`
     : 'não há disponibilização de recursos ou estrutura física além dos itens acordados entre as partes.';
 
+  const exclTitulo = service.exclusividade
+    ? 'CLÁUSULA 4ª — DA ATUAÇÃO PROFISSIONAL E RESTRIÇÕES COMERCIAIS'
+    : 'CLÁUSULA 4ª — DA NÃO EXCLUSIVIDADE';
   const excl = service.exclusividade
-    ? 'O PRESTADOR concorda em prestar serviços com exclusividade à CONTRATANTE durante a vigência deste instrumento, mediante a remuneração específica prevista neste contrato.'
+    ? 'A CONTRATADA poderá prestar serviços a outras pessoas físicas ou jurídicas, desde que não haja conflito de interesses direto com as atividades da CONTRATANTE. Fica vedado, durante a vigência deste contrato, o atendimento particular de pacientes ativos encaminhados ou atendidos exclusivamente pela CONTRATANTE, salvo autorização expressa e por escrito.'
     : 'O presente contrato NÃO estabelece exclusividade. O PRESTADOR poderá exercer livremente sua atividade profissional junto a outras pessoas físicas ou jurídicas, desde que não haja conflito de interesses ou violação do sigilo profissional.';
 
   const vigencia = formData.vigencia_indeterminada
     ? 'O presente contrato vigora por prazo <strong>indeterminado</strong>'
     : `O presente contrato vigora de <strong>${formatDateLong(formData.data_vigencia_inicio)}</strong> até <strong>${formatDateLong(formData.data_vigencia_fim)}</strong>`;
+
+  const FORMA_PAGAMENTO_LABEL: Record<string, string> = {
+    pix: 'PIX', transferencia: 'transferência', boleto: 'boleto', dinheiro: 'dinheiro', outro: 'outro',
+  };
+  const formasPagamentoStr = (remuneration.formas_pagamento || [])
+    .map(f => f === 'outro' && remuneration.forma_pagamento_outro_detalhe
+      ? `outro meio pactuado: ${remuneration.forma_pagamento_outro_detalhe}`
+      : (FORMA_PAGAMENTO_LABEL[f] || f))
+    .join(', ');
 
   let nfClausula = '';
   if (remuneration.emite_nota_fiscal === 'obrigatorio') {
@@ -60,8 +96,7 @@ export function generateContractHTML(
     <p class="parte-info">${company.nome_fantasia}</p>
     <p class="parte-info">CNPJ: ${company.cnpj}</p>
     ${company.inscricao_municipal ? `<p class="parte-info">Inscrição Municipal: ${company.inscricao_municipal}</p>` : ''}
-    <p class="parte-info">${company.logradouro}, ${company.numero}${company.complemento ? ', ' + company.complemento : ''}</p>
-    <p class="parte-info">${company.bairro}, ${company.cidade}/${company.uf} — CEP ${company.cep}</p>
+    <p class="parte-info">${enderecoCompany}</p>
     <p class="parte-info">E-mail: ${company.email}</p>
     <p class="parte-info">Tel: ${company.telefone}</p>
     <p class="parte-rep">Representada por: <strong>${company.responsavel_legal}</strong> — CPF ${company.cpf_responsavel}</p>
@@ -73,12 +108,13 @@ export function generateContractHTML(
     ${provider.cnpj ? `<p class="parte-info">CNPJ: ${provider.cnpj}</p>` : ''}
     ${provider.cpf ? `<p class="parte-info">CPF: ${provider.cpf}</p>` : ''}
     ${provider.rg ? `<p class="parte-info">RG: ${provider.rg}</p>` : ''}
+    ${(provider.nacionalidade || provider.estado_civil) ? `<p class="parte-info">${[provider.nacionalidade, provider.estado_civil].filter(Boolean).join(', ')}</p>` : ''}
     <p class="parte-info">${provider.profissao_descricao || provider.profissao}${provider.especialidade ? ' — ' + provider.especialidade : ''}</p>
     ${provider.conselho_profissional ? `<p class="parte-info">${provider.conselho_profissional}: ${provider.numero_registro_conselho || '___'}</p>` : ''}
-    <p class="parte-info">${provider.logradouro || ''}, ${provider.numero || ''}${provider.complemento ? ', ' + provider.complemento : ''}</p>
-    <p class="parte-info">${provider.cidade || ''}/${provider.uf || ''} — CEP ${provider.cep || ''}</p>
+    ${enderecoProvider ? `<p class="parte-info">${enderecoProvider}</p>` : ''}
     <p class="parte-info">E-mail: ${provider.email}</p>
-    <p class="parte-info">Cel: ${provider.telefone}</p>
+    ${provider.telefone ? `<p class="parte-info">Cel: ${provider.telefone}</p>` : ''}
+    ${provider.telefone_fixo ? `<p class="parte-info">Tel: ${provider.telefone_fixo}</p>` : ''}
   </div>
 </div>
 <p class="partes-intro">As partes acima qualificadas, doravante denominadas <strong>CONTRATANTE</strong> e <strong>CONTRATADA</strong>, celebram o presente instrumento de <strong>Contrato de Prestação de Serviços Autônomos</strong>, regido pelas cláusulas e condições adiante estipuladas.</p>
@@ -114,8 +150,8 @@ ${provider.conselho_profissional ? `<p><strong>3.3.</strong> A CONTRATADA declar
 </section>
 
 <section>
-<h2>CLÁUSULA 4ª — DA NÃO EXCLUSIVIDADE</h2>
-<div class="clausula"><p>${excl}</p></div>
+<h2>${exclTitulo}</h2>
+<div class="clausula"><p data-clause-key="exclusividade">${excl}</p></div>
 </section>
 
 <section>
@@ -146,7 +182,7 @@ ${service.regra_captacao_pacientes ? `<p><strong>6.7.</strong> ${service.regra_c
 <h2>CLÁUSULA 7ª — DA REMUNERAÇÃO E NOTA FISCAL</h2>
 <div class="clausula">
 <p data-clause-key="remuneracao"><strong>7.1.</strong> Pelos serviços prestados, a CONTRATANTE pagará à CONTRATADA: <strong>${remuneration.valor_descricao}</strong>.</p>
-<p><strong>7.2.</strong> Pagamento até <strong>${remuneration.data_pagamento}</strong>, via <strong>${remuneration.formas_pagamento.join(' ou ')}</strong>.</p>
+<p><strong>7.2.</strong> Pagamento até <strong>${remuneration.data_pagamento}</strong>, via <strong>${formasPagamentoStr}</strong>.</p>
 <p><strong>7.3.</strong> ${nfClausula}</p>
 ${remuneration.retencoes_fiscais ? `<p><strong>7.4.</strong> Retenções acordadas: ${remuneration.retencoes_fiscais}.</p>` : ''}
 <p><strong>7.5. Reembolso:</strong> ${remuneration.reembolso_descricao || 'Não há previsão de reembolso de despesas.'}</p>
@@ -323,7 +359,7 @@ ${anexos.map((a, i) => `<p><strong>Anexo ${String.fromCharCode(65 + i)}:</strong
 
 </article>
 
-${generateAnexosHTML(anexos, company, provider.nome_razao_social)}`;
+${generateAnexosHTML(anexos, company, provider)}`;
 
   return html;
 }
@@ -344,7 +380,7 @@ function getAnexoTitle(anexo: AnexoType): string {
   return titles[anexo] || anexo;
 }
 
-function generateAnexosHTML(anexos: AnexoType[], company: Company, nomeContratada: string): string {
+function generateAnexosHTML(anexos: AnexoType[], company: Company, provider: ContractFormData['provider']): string {
   if (anexos.length === 0) return '';
   const data = hoje();
 
@@ -355,7 +391,7 @@ function generateAnexosHTML(anexos: AnexoType[], company: Company, nomeContratad
     let corpo = '';
     switch (anexo) {
       case 'confidencialidade':
-        corpo = `<p>Pelo presente Termo, a CONTRATADA — <strong>${nomeContratada}</strong> — compromete-se a:</p>
+        corpo = `<p>Pelo presente Termo, a CONTRATADA — <strong>${provider.nome_razao_social}</strong> — compromete-se a:</p>
 <p>1. Manter sigilo absoluto sobre todas as informações confidenciais da CONTRATANTE e seus pacientes;</p>
 <p>2. Não divulgar, reproduzir ou transferir quaisquer informações confidenciais a terceiros;</p>
 <p>3. Adotar medidas técnicas para impedir acesso não autorizado às informações;</p>
@@ -379,6 +415,60 @@ function generateAnexosHTML(anexos: AnexoType[], company: Company, nomeContratad
 <p>4. A CONTRATADA é responsável pelo recolhimento de suas próprias contribuições previdenciárias e tributos;</p>
 <p>5. A CONTRATANTE não arcará com verbas trabalhistas, férias, 13º, FGTS ou aviso prévio;</p>
 <p>6. Ambas as partes reconhecem os riscos de descaracterização do contrato caso a relação passe a apresentar elementos de subordinação não previstos.</p>`;
+        break;
+      case 'prontuarios':
+        corpo = `<p>A CONTRATADA declara ciência de que:</p>
+<p>1. Os prontuários e documentos clínicos produzidos no exercício deste contrato deverão ser mantidos, acessados, devolvidos e protegidos conforme as regras previstas no contrato principal, normas do CFP/CRP e legislação aplicável;</p>
+<p>2. É vedada a remoção, cópia não autorizada ou compartilhamento de documentos clínicos sem observância dos protocolos da CONTRATANTE;</p>
+<p>3. O prazo mínimo de guarda observará a legislação vigente (mínimo 5 anos para adultos; até 10 anos para menores após término do atendimento);</p>
+<p>4. A responsabilidade técnica pelo conteúdo dos prontuários é pessoal e intransferível da CONTRATADA.</p>`;
+        break;
+      case 'uso_estrutura':
+        corpo = `<p>A CONTRATADA declara ciência de que:</p>
+<p>1. Os recursos e a estrutura disponibilizados pela CONTRATANTE destinam-se exclusivamente à execução dos serviços objeto deste contrato;</p>
+<p>2. É vedado o uso pessoal, a cessão a terceiros ou a utilização da estrutura para atendimentos não pactuados neste instrumento;</p>
+<p>3. Eventuais danos causados por mau uso da estrutura serão de responsabilidade da CONTRATADA;</p>
+<p>4. A CONTRATADA é responsável por seus próprios materiais e instrumentos, salvo os expressamente disponibilizados pela CONTRATANTE.</p>`;
+        break;
+      case 'politica_agenda':
+        corpo = `<p>A CONTRATADA declara ciência e concordância com as regras de agenda, cancelamento, faltas, atrasos e remarcações previstas no contrato principal, comprometendo-se a:</p>
+<p>1. Observar os prazos de antecedência estabelecidos para cancelamentos e remarcações;</p>
+<p>2. Comunicar a CONTRATANTE com a antecedência mínima pactuada em caso de impossibilidade de atendimento;</p>
+<p>3. Respeitar a agenda livremente pactuada entre as partes, sem que isso configure controle de jornada ou subordinação.</p>`;
+        break;
+      case 'checklist_pj_mei':
+        corpo = `<p>Checklist de documentos para conferência no momento da contratação:</p>
+<p>☐ Contrato Social ou Certificado de Condição de MEI (CCMEI), conforme aplicável;</p>
+<p>☐ Comprovante de inscrição no CNPJ;</p>
+<p>☐ Comprovante de endereço atualizado;</p>
+<p>☐ Documento de identificação do responsável legal (RG/CPF);</p>
+<p>☐ Comprovante de regularidade fiscal (Certidão Negativa de Débitos), quando aplicável;</p>
+<p>☐ Comprovante de registro no conselho profissional competente, quando exigível.</p>`;
+        break;
+      case 'checklist_pejotizacao':
+        corpo = `<p>Checklist de fatores de atenção para mitigação de risco de pejotização, a serem observados durante toda a vigência contratual:</p>
+<p>☐ Ausência de subordinação hierárquica e de controle de jornada (ponto eletrônico, horário fixo obrigatório);</p>
+<p>☐ Ausência de exclusividade ampla não pactuada expressamente neste instrumento;</p>
+<p>☐ Ausência de pessoalidade obrigatória — possibilidade de substituição por profissional habilitado;</p>
+<p>☐ Ausência de habitualidade forçada incompatível com a autonomia da CONTRATADA;</p>
+<p>☐ Forma de pagamento não caracterizada como salário fixo mensal sem vínculo a serviços efetivamente prestados;</p>
+<p>☐ Autonomia técnica plena da CONTRATADA na condução de suas atividades profissionais.</p>`;
+        break;
+      case 'checklist_conselho':
+        corpo = `<p>Checklist de verificação de regularidade do registro profissional da CONTRATADA:</p>
+<p>☐ Conselho profissional informado: ${provider.conselho_profissional || '___'};</p>
+<p>☐ Número de registro: ${provider.numero_registro_conselho || '___'};</p>
+<p>☐ Situação cadastral verificada como regular junto ao conselho competente na data de assinatura;</p>
+<p>☐ Compromisso da CONTRATADA de manter a regularidade do registro durante toda a vigência deste contrato;</p>
+<p>☐ Comunicação imediata à CONTRATANTE em caso de suspensão, cassação ou irregularidade no registro.</p>`;
+        break;
+      case 'ciencia_etica':
+        corpo = `<p>A CONTRATADA declara ciência e compromisso com:</p>
+<p>1. O Código de Ética Profissional da sua categoria e as Resoluções do conselho profissional competente (CFP/CRP ou correlato);</p>
+<p>2. O dever de sigilo profissional absoluto sobre informações de pacientes e dados institucionais da CONTRATANTE;</p>
+<p>3. A autonomia técnica como contrapartida da responsabilidade profissional pessoal e intransferível sobre seus atos;</p>
+<p>4. A vedação de condutas que configurem violação ética, discriminação, assédio ou prejuízo aos pacientes;</p>
+<p>5. As consequências éticas, civis e legais decorrentes do descumprimento destas obrigações.</p>`;
         break;
       default:
         corpo = `<p>As partes acordam as condições específicas deste anexo, que passa a ser parte integrante do Contrato de Prestação de Serviços nº firmado entre as partes.</p>`;

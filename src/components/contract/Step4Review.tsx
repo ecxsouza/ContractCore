@@ -269,7 +269,36 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
     setTextosEditados(prev => ({ ...prev, [id]: valor }));
   }
 
+  // Detecta placeholders/textos provisórios que não podem ir para o contrato final
+  function detectarPlaceholders(textos: string[]): { bloqueantes: string[]; avisos: string[] } {
+    const PADRAO_BLOQUEANTE = /\[DEFINIR\]|\[INFORMAR\]|\[PREENCHER\]|\{\{.*?\}\}/gi;
+    const PADRAO_AVISO       = /\bTESTE\b/gi;
+    const bloqueantes: string[] = [];
+    const avisos: string[] = [];
+    textos.forEach(t => {
+      if (!t) return;
+      if (PADRAO_BLOQUEANTE.test(t)) bloqueantes.push(t);
+      PADRAO_BLOQUEANTE.lastIndex = 0;
+      if (PADRAO_AVISO.test(t)) avisos.push(t);
+      PADRAO_AVISO.lastIndex = 0;
+    });
+    return { bloqueantes, avisos };
+  }
+
   function handleAcceptIA() {
+    const clausulasAceitas = clausulasRevisadas.filter(cl => aprovadas[cl.id]);
+    const textosFinais = clausulasAceitas.map(cl => textosEditados[cl.id] ?? cl.texto_revisado);
+
+    const { bloqueantes, avisos } = detectarPlaceholders(textosFinais);
+
+    if (bloqueantes.length > 0) {
+      toast.error('Há campos pendentes ou provisórios na cláusula revisada. Edite antes de salvar o contrato final.');
+      return;
+    }
+    if (avisos.length > 0) {
+      toast('Atenção: foi detectado texto "TESTE" em uma cláusula aplicada. Revise antes de salvar.', { icon: '⚠️' });
+    }
+
     // Monta HTML final aplicando apenas as revisões individualmente aprovadas
     const htmlFinal = aplicarRevisoesNoHtml(
       contratoOriginal,
@@ -279,8 +308,6 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
     );
 
     setContratoRevisado(htmlFinal);
-
-    const clausulasAceitas = clausulasRevisadas.filter(cl => aprovadas[cl.id]);
 
     onChange({
       ia_aceita:              true,

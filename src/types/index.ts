@@ -158,6 +158,7 @@ export interface RemunerationDetails {
   percentual?:          number;
   data_pagamento:       string;
   formas_pagamento:     PaymentMethod[];
+  forma_pagamento_outro_detalhe?: string;
   emite_nota_fiscal:    'obrigatorio' | 'dispensado_mei' | 'a_definir';
   retencoes_fiscais?:   string;
   reembolso_tipo?:      string;
