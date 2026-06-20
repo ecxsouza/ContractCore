@@ -253,6 +253,11 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
   // Contrato exibido: quando aceito, usa o HTML com revisões aplicadas
   const contratoExibido = aiPhase === 'accepted' ? contratoRevisado : contratoOriginal;
 
+  // Há pelo menos uma cláusula marcada como "Aplicar" individualmente.
+  // Usado tanto para o bloqueio ao salvar quanto para resetar esse estado
+  // corretamente em handleRejectIA.
+  const temAprovacaoPendente = Object.values(aprovadas).some(Boolean);
+
   // ── IA ────────────────────────────────────────────────────────
   async function handleEnrichWithAI() {
     setAiPhase('processing');
@@ -337,10 +342,21 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
 
   function handleAcceptIA() {
     const clausulasAceitas = clausulasRevisadas.filter(cl => aprovadas[cl.id]);
-    const textosFinais = clausulasAceitas.map(cl => textosEditados[cl.id] ?? cl.texto_revisado);
 
+    // Estado B/D do princípio de estado: nenhuma revisão individual foi
+    // marcada como "Aplicar". Não faz sentido "aceitar" nada — orienta o
+    // usuário a aplicar alguma sugestão ou rejeitar e seguir com o original.
+    if (clausulasAceitas.length === 0) {
+      toast('Nenhuma revisão foi aplicada. Clique em "Aplicar" nas sugestões desejadas ou rejeite a revisão para continuar com o contrato original.', { icon: 'ℹ️' });
+      return;
+    }
+
+    const textosFinais = clausulasAceitas.map(cl => textosEditados[cl.id] ?? cl.texto_revisado);
     const { bloqueantes, avisos } = detectarPlaceholders(textosFinais);
 
+    // Estado D: placeholder bloqueante impede a aceitação. NÃO marca como
+    // accepted, NÃO mostra sucesso, NÃO grava ia_contrato_html — mantém
+    // tudo como estava para o usuário editar ou rejeitar.
     if (bloqueantes.length > 0) {
       toast.error('Há campos pendentes ou provisórios na cláusula revisada. Edite antes de salvar o contrato final.');
       return;
@@ -349,8 +365,7 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
       toast('Atenção: foi detectado texto "TESTE" em uma cláusula aplicada. Revise antes de salvar.', { icon: '⚠️' });
     }
 
-    // Monta HTML final aplicando apenas as revisões individualmente aprovadas,
-    // sobre a base mais atual do contrato (reflete anexos/dados recém-alterados).
+    // Estado E: sem placeholder bloqueante — aplica de fato e confirma.
     const htmlFinal = aplicarRevisoesNoHtml(
       htmlBaseContrato,
       clausulasRevisadas,
@@ -372,38 +387,34 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
     setAiPhase('accepted');
     setActiveTab('preview');
 
-    const nAceitas = clausulasAceitas.length;
     toast.success(
-      nAceitas === 0
-        ? 'Revisão registrada sem aplicar substituições de texto.'
-        : `${nAceitas} cláusula${nAceitas > 1 ? 's' : ''} aplicada${nAceitas > 1 ? 's' : ''} no contrato.`,
+      `${clausulasAceitas.length} cláusula${clausulasAceitas.length > 1 ? 's' : ''} aplicada${clausulasAceitas.length > 1 ? 's' : ''} no contrato.`,
     );
   }
 
   function handleRejectIA() {
+    // Limpa completamente o estado de revisão pendente — nenhuma cláusula
+    // marcada como "Aplicar" deve sobreviver à rejeição, senão o bloqueio
+    // de salvar ("Revisão IA não confirmada") volta a disparar incorretamente.
+    setAprovadas({});
+    setTextosEditados({});
+    setContratoRevisado(htmlBaseContrato);
     onChange({ ia_aceita: false, ia_contrato_html: undefined });
     setAiPhase('rejected');
+    setActiveTab('preview');
     toast('Revisão rejeitada — contrato original mantido.');
   }
 
-  // Barreira defensiva: revalida o HTML final que será salvo (caso já tenha
-  // passado por handleAcceptIA anteriormente) antes de disparar onSave.
+  // Barreira de salvamento: só bloqueia quando há revisão individual aplicada
+  // e ainda não confirmada via "Aceitar revisão" nem desfeita via "Rejeitar".
   function handleSaveClick() {
-    // Há cláusulas marcadas como "Aplicar" individualmente, mas o usuário
-    // ainda não clicou em "Aceitar revisão" — bloqueia para não perder a
-    // intenção do usuário ao salvar o contrato original por engano.
-    const temRevisaoPendente = Object.values(aprovadas).some(Boolean) && aiPhase !== 'accepted';
-    if (temRevisaoPendente) {
+    // Bloqueia apenas se: existe aprovação pendente E a IA não está em
+    // estado final ('accepted' ou 'rejected'). Após aceitar ou rejeitar,
+    // temAprovacaoPendente já estará false (limpo em handleRejectIA) ou
+    // aiPhase já será 'accepted' — nenhum dos dois bloqueia mais.
+    if (temAprovacaoPendente && aiPhase !== 'accepted' && aiPhase !== 'rejected') {
       setShowPendingIAModal(true);
       return;
-    }
-
-    if (formData.ia_aceita && formData.ia_contrato_html) {
-      const { bloqueantes } = detectarPlaceholders([formData.ia_contrato_html]);
-      if (bloqueantes.length > 0) {
-        toast.error('Há campos pendentes ou provisórios na cláusula revisada. Edite antes de salvar o contrato final.');
-        return;
-      }
     }
     onSave();
   }

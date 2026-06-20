@@ -95,27 +95,30 @@ export default function LoginPage() {
       </div>
 
       {/* ── Painel direito — Formulário ─── */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-slate-50">
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-5 py-8 sm:p-6 bg-gradient-to-b from-brand-900 from-0% via-slate-50 via-[140px] to-slate-50 lg:bg-none lg:bg-slate-50">
         <div className="w-full max-w-md">
 
-          {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <Shield className="w-6 h-6 text-brand-700" />
-            <span className="font-bold text-brand-900 text-lg">ContractCore</span>
+          {/* Mobile branding — mais elegante e alinhado ao card abaixo */}
+          <div className="flex flex-col items-center gap-2 mb-7 lg:hidden">
+            <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center backdrop-blur-sm mb-1">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <span className="font-bold text-white text-xl tracking-tight">ContractCore Elite</span>
+            <span className="text-white/55 text-xs tracking-widest uppercase">by Zanarole</span>
           </div>
 
-          <div className="cc-card p-8">
-            <h2 className="text-2xl font-bold text-brand-900 mb-1">Acessar plataforma</h2>
-            <p className="text-slate-500 text-sm mb-8">Entre com suas credenciais</p>
+          <div className="cc-card p-6 sm:p-8 shadow-xl shadow-brand-900/10 lg:shadow-card">
+            <h2 className="text-xl sm:text-2xl font-bold text-brand-900 mb-1">Acessar plataforma</h2>
+            <p className="text-slate-500 text-sm mb-7 sm:mb-8">Entre com suas credenciais</p>
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
               <div>
                 <label className="cc-label">E-mail</label>
                 <input
                   type="email"
                   required
                   placeholder="seu@email.com"
-                  className="cc-input"
+                  className="cc-input py-3"
                   value={form.email}
                   onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                   autoComplete="email"
@@ -134,14 +137,14 @@ export default function LoginPage() {
                     type={showPass ? 'text' : 'password'}
                     required
                     placeholder="••••••••"
-                    className="cc-input pr-10"
+                    className="cc-input py-3 pr-10"
                     value={form.password}
                     onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                     onClick={() => setShowPass(!showPass)}
                   >
                     {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -149,7 +152,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3">
+              <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3.5 sm:py-3 text-base sm:text-sm">
                 {loading ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -167,7 +170,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <p className="text-center text-xs text-slate-400 mt-6">
+          <p className="text-center text-xs sm:text-xs text-slate-500 lg:text-slate-400 mt-5 sm:mt-6 px-2 leading-relaxed">
             Plataforma em conformidade com LGPD · Dados criptografados · Acesso seguro
           </p>
         </div>
