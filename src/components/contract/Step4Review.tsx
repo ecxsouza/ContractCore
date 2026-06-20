@@ -175,7 +175,10 @@ interface Step4Props {
   company:     Company;
   onChange:    (data: Partial<ContractFormData>) => void;
   onBack:      () => void;
-  onSave:      () => void;
+  // Aceita um override opcional para garantir que dados recém-confirmados
+  // (ex: revisão IA aceita no mesmo clique) sejam usados no salvamento,
+  // mesmo que o estado do componente pai ainda não tenha propagado.
+  onSave:      (overrideData?: Partial<ContractFormData>) => void;
   saving:      boolean;
   onGoToStep?: (step: number) => void;
 }
@@ -416,6 +419,25 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
       setShowPendingIAModal(true);
       return;
     }
+
+    // Blindagem: se a revisão IA foi aceita, envia os dados explicitamente
+    // como override — evita que um clique imediato em "Salvar" logo após
+    // "Aceitar revisão" use um formData do componente pai ainda não
+    // sincronizado pelo React (race condition de propagação de estado).
+    if (aiPhase === 'accepted') {
+      const clausulasAceitas = clausulasRevisadas.filter(cl => aprovadas[cl.id]);
+      onSave({
+        ia_aceita:              true,
+        ia_contrato_html:       contratoRevisado,
+        ia_sugestoes:           aiSugestoes,
+        ia_nivel_risco:         nivelRisco ?? undefined,
+        ia_checklist_mesa:      checklistMesa,
+        ia_clausulas_revisadas: clausulasAceitas,
+        ia_riscos:              riscos,
+      });
+      return;
+    }
+
     onSave();
   }
 
@@ -510,12 +532,12 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
               <br /><span className="text-xs text-slate-400">⏱ Pode levar até 45 segundos.</span>
             </p>
           </div>
-          <div className="flex flex-col items-end gap-3 flex-shrink-0">
+          <div className="flex flex-col items-stretch sm:items-end gap-3 flex-shrink-0 w-full sm:w-auto">
             {nivelRisco && (() => {
               const cfg = NIVEL_RISCO_CFG[nivelRisco];
               const Icon = cfg.icon;
               return (
-                <div className={clsx('flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border', cfg.cls)}>
+                <div className={clsx('flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border', cfg.cls)}>
                   <Icon className="w-3.5 h-3.5" /> {cfg.label}
                 </div>
               );
@@ -523,7 +545,7 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
             <button
               onClick={handleEnrichWithAI}
               disabled={aiPhase === 'processing'}
-              className="btn-gold"
+              className="btn-gold w-full sm:w-auto justify-center"
             >
               {aiPhase === 'processing' ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Aguarde...</>
@@ -573,7 +595,7 @@ export function Step4Review({ formData, company, onChange, onBack, onSave, savin
           { id: 'vigencia', label: '📅 Vigência'  },
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as TabType)}
-            className={clsx('flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all whitespace-nowrap',
+            className={clsx('flex-1 py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap',
               activeTab === tab.id ? 'bg-white text-brand-800 shadow-sm font-semibold' : 'text-white/60 hover:text-white')}>
             {tab.label}
           </button>

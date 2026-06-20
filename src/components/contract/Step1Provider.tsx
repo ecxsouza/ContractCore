@@ -213,12 +213,12 @@ export function Step1Provider({ data, onChange, onNext, onSelectExisting }: Step
         <div className="grid grid-cols-3 gap-3">
           {PESSOA_TYPES.map(tp => (
             <button key={tp.value} type="button" onClick={() => onChange({ tipo_pessoa: tp.value })}
-              className={clsx('flex flex-col items-center gap-1 p-4 rounded-xl border-2 text-center transition-all',
+              className={clsx('flex flex-col items-center justify-center gap-1 p-3 sm:p-4 rounded-xl border-2 text-center transition-all min-h-[84px] sm:min-h-0',
                 data.tipo_pessoa === tp.value
                   ? 'border-brand-500 bg-brand-50 text-brand-800'
                   : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-200')}>
-              <span className="text-lg font-bold">{tp.label}</span>
-              <span className="text-xs opacity-70">{tp.desc}</span>
+              <span className="text-base sm:text-lg font-bold">{tp.label}</span>
+              <span className="text-[10px] leading-tight sm:text-xs opacity-70">{tp.desc}</span>
             </button>
           ))}
         </div>

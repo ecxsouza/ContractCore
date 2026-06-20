@@ -95,16 +95,16 @@ export default function LoginPage() {
       </div>
 
       {/* ── Painel direito — Formulário ─── */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-5 py-8 sm:p-6 bg-gradient-to-b from-brand-900 from-0% via-slate-50 via-[140px] to-slate-50 lg:bg-none lg:bg-slate-50">
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-5 py-8 sm:p-6 bg-slate-50">
         <div className="w-full max-w-md">
 
           {/* Mobile branding — mais elegante e alinhado ao card abaixo */}
           <div className="flex flex-col items-center gap-2 mb-7 lg:hidden">
-            <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center backdrop-blur-sm mb-1">
-              <Shield className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-brand-900/10 border border-brand-900/15 flex items-center justify-center mb-1">
+              <Shield className="w-6 h-6 text-brand-900" />
             </div>
-            <span className="font-bold text-white text-xl tracking-tight">ContractCore Elite</span>
-            <span className="text-white/55 text-xs tracking-widest uppercase">by Zanarole</span>
+            <span className="font-bold text-brand-900 text-xl tracking-tight">ContractCore Elite</span>
+            <span className="text-slate-500 text-xs tracking-widest uppercase">by Zanarole</span>
           </div>
 
           <div className="cc-card p-6 sm:p-8 shadow-xl shadow-brand-900/10 lg:shadow-card">

@@ -144,8 +144,9 @@ body {
 
   /* Contract preview */
   .contract-preview {
-    @apply bg-white border border-slate-200 rounded-2xl p-8 font-serif text-sm
-           leading-relaxed text-slate-900 max-h-[75vh] overflow-y-auto shadow-card-md;
+    @apply bg-white border border-slate-200 rounded-2xl p-4 sm:p-8 font-serif text-sm
+           leading-relaxed text-slate-900 max-h-[75vh] overflow-y-auto overflow-x-hidden
+           max-w-full shadow-card-md;
   }
 }
 
@@ -266,6 +267,29 @@ body {
   padding-top: 16px;
   border-top: 1px solid #e2e8f0;
   font-size: 0.83rem;
+}
+
+/* ── RESPONSIVO MOBILE (apenas tela, não afeta impressão) ───────
+   Os grids de partes (CONTRATANTE/CONTRATADA) e assinaturas usam
+   1fr 1fr fixo, o que força overflow horizontal em telas estreitas.
+   Em mobile, empilha em 1 coluna e garante quebra de texto longo. */
+@media screen and (max-width: 640px) {
+  .contract-body {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .contract-body .partes-grid,
+  .contract-body .signatures-grid {
+    grid-template-columns: 1fr;
+  }
+  .contract-body .parte-card {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .contract-body h1.contract-title {
+    font-size: 1rem;
+  }
 }
 
 /* ── PRINT ───────────────────────────────────────────────────── */

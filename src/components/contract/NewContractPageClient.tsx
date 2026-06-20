@@ -98,13 +98,17 @@ export function NewContractPageClient({ company, templateData }: NewContractPage
     setForm(p => ({ ...p, provider_id_selecionado: providerId ?? undefined }));
   }, []);
 
-  async function handleSave() {
+  async function handleSave(overrideData?: Partial<ContractFormData>) {
     setSaving(true);
     try {
+      // overrideData garante que dados confirmados no mesmo clique (ex:
+      // revisão IA aceita) sejam usados mesmo que o estado `form` do
+      // componente pai ainda não tenha sido propagado pelo React.
+      const formToSave = overrideData ? { ...form, ...overrideData } : form;
       const res = await fetch('/api/contracts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ formData: form }),
+        body: JSON.stringify({ formData: formToSave }),
       });
       if (!res.ok) {
         const err = await res.json();

@@ -45,8 +45,8 @@ export default async function DashboardPage() {
     <AppLayout company={company}>
       <div className="space-y-8 animate-in">
 
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-4">
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-3">
             {company.logo_url && (
               <img
                 src={company.logo_url}
@@ -55,8 +55,8 @@ export default async function DashboardPage() {
               />
             )}
             <div>
-              <h1 className="text-2xl font-bold text-brand-900">Dashboard</h1>
-              <p className="text-slate-500 text-sm mt-0.5">
+              <h1 className="hidden sm:block text-2xl font-bold text-brand-900">Dashboard</h1>
+              <p className="text-slate-500 text-sm sm:mt-0.5">
                 {company.nome_fantasia} · Visão geral dos contratos
               </p>
             </div>
@@ -100,26 +100,28 @@ export default async function DashboardPage() {
                   <Link
                     key={c.id}
                     href={`/contracts/${c.id}`}
-                    className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors group"
+                    className="flex flex-col gap-2 px-4 sm:px-6 py-4 hover:bg-slate-50 transition-colors group sm:flex-row sm:items-center sm:gap-4"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-4 h-4 text-brand-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm text-brand-900 truncate group-hover:text-brand-600">
-                        {c.service_providers?.nome_razao_social || 'Prestador'}
+                    <div className="flex items-center gap-3 sm:contents">
+                      <div className="w-9 h-9 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-4 h-4 text-brand-600" />
                       </div>
-                      <div className="text-xs text-slate-400">
-                        {c.numero_contrato} · {c.service_providers?.profissao}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm text-brand-900 truncate group-hover:text-brand-600">
+                          {c.service_providers?.nome_razao_social || 'Prestador'}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {c.numero_contrato} · {c.service_providers?.profissao}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-wrap pl-12 sm:pl-0 sm:flex-shrink-0">
                       {c.ia_revisado && (
-                        <span className="badge badge-blue gap-1">
+                        <span className="badge badge-blue gap-1 text-2xs sm:text-xs">
                           <Zap className="w-2.5 h-2.5" /> IA
                         </span>
                       )}
-                      <span className={`badge ${getStatusDisplay(c.status).cls}`}>
+                      <span className={`badge ${getStatusDisplay(c.status).cls} text-2xs sm:text-xs`}>
                         {getStatusDisplay(c.status).label}
                       </span>
                     </div>
