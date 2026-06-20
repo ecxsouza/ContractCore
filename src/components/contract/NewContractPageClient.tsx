@@ -21,7 +21,7 @@ const EMPTY_FORM: ContractFormData = {
     tipo_pessoa: 'PJ',
     nome_razao_social: '', nome_fantasia: '', cpf: '', cnpj: '', rg: '',
     profissao: 'psicologo', especialidade: '',
-    conselho_profissional: 'CRP — Conselho Regional de Psicologia',
+    conselho_profissional: 'CFP / CRP — Conselho Federal de Psicologia e Conselho Regional de Psicologia',
     numero_registro_conselho: '',
     cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '',
     email: '', telefone: '', nacionalidade: 'Brasileira',
