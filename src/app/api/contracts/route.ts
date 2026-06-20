@@ -147,9 +147,16 @@ export async function POST(request: NextRequest) {
   // Contrato original gerado do formData
   const contratoHtmlOriginal = generateContractHTML(formData, company, numeroContrato);
 
-  // Se usuário aceitou revisão da IA, usar versão revisada como contrato ativo
-  const iaAceita        = formData.ia_aceita === true && !!formData.ia_contrato_html;
-  const contratoHtmlFinal = iaAceita ? formData.ia_contrato_html! : contratoHtmlOriginal;
+  // Se usuário aceitou revisão da IA, usar versão revisada como contrato ativo.
+  // O HTML revisado foi gerado na tela de pré-visualização com o placeholder
+  // "CC-PREVIEW" (número real ainda não existia naquele momento). Agora que
+  // numeroContrato já foi gerado, substitui todas as ocorrências antes de
+  // salvar — sem regenerar o HTML nem perder as revisões da IA aplicadas.
+  const iaAceita = formData.ia_aceita === true && !!formData.ia_contrato_html;
+  const contratoHtmlRevisadoComNumero = iaAceita
+    ? formData.ia_contrato_html!.split('CC-PREVIEW').join(numeroContrato)
+    : null;
+  const contratoHtmlFinal = iaAceita ? contratoHtmlRevisadoComNumero! : contratoHtmlOriginal;
 
   const { data: contract, error: contractError } = await supabase
     .from('contracts')
@@ -167,7 +174,7 @@ export async function POST(request: NextRequest) {
       anexos:                 formData.anexos,
       contrato_html:          contratoHtmlFinal,
       contrato_html_original: contratoHtmlOriginal,
-      contrato_revisado_ia:   iaAceita ? formData.ia_contrato_html : null,
+      contrato_revisado_ia:   iaAceita ? contratoHtmlRevisadoComNumero : null,
       notas_internas:         formData.notas_internas || null,
       // Campos IA persistidos quando revisão foi aceita
       ia_revisado:            iaAceita,
