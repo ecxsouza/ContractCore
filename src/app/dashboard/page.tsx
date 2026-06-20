@@ -56,9 +56,7 @@ export default async function DashboardPage() {
             )}
             <div>
               <h1 className="hidden sm:block text-2xl font-bold text-brand-900">Dashboard</h1>
-              <p className="text-slate-500 text-sm sm:mt-0.5">
-                {company.nome_fantasia} · Visão geral dos contratos
-              </p>
+              <p className="text-slate-500 text-sm sm:mt-0.5">Visão geral dos contratos</p>
             </div>
           </div>
           <Link href="/contracts/new" className="btn-primary">
