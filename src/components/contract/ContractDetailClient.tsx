@@ -171,6 +171,7 @@ export function ContractDetailClient({
       if (error) throw error;
       toast.success('Contrato excluído.');
       router.push('/contracts');
+      router.refresh();
     } catch (e: any) {
       toast.error(e.message || 'Erro ao excluir.');
       setDeleting(false);
