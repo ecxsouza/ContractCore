@@ -10,6 +10,30 @@ function hoje(): string {
   return formatDateLong(new Date().toISOString().split('T')[0]);
 }
 
+// Labels de exibição da profissão — espelha exatamente os valores de
+// ProfessionType (src/types/index.ts) para que o contrato nunca exiba o
+// valor técnico cru (ex: "psicologo") em vez do nome formatado.
+const PROFISSAO_LABELS: Record<string, string> = {
+  psicologo:      'Psicólogo(a)',
+  neuropsicologo: 'Neuropsicólogo(a)',
+  fonoaudiologo:  'Fonoaudiólogo(a)',
+  psicopedagogo:  'Psicopedagogo(a)',
+  secretaria:     'Secretária',
+  recepcionista:  'Recepcionista',
+  coordenador:    'Coordenador(a)',
+  outro:          'Outro',
+};
+
+// Formata a profissão para exibição no contrato. Se houver descrição
+// customizada (profissao_descricao), ela tem prioridade — preservando o
+// comportamento já existente — caso contrário usa o label formatado em
+// vez do valor técnico interno (ex: "psicologo").
+function formatarProfissao(profissao?: string, profissaoDescricao?: string): string {
+  if (profissaoDescricao) return profissaoDescricao;
+  if (!profissao) return '';
+  return PROFISSAO_LABELS[profissao] || profissao;
+}
+
 // Formato oficial de endereço: Rua, Número[, Complemento] - Bairro - CEP - Cidade - UF
 function formatarEndereco(opts: {
   logradouro?: string; numero?: string; complemento?: string;
@@ -68,7 +92,7 @@ export function generateContractHTML(
   });
 
   const qualificacaoContratada = tipoPessoa === 'PF'
-    ? `${nomeContratada}, ${provider.nacionalidade || 'brasileiro(a)'}, ${provider.estado_civil || ''}, ${provider.profissao_descricao || provider.profissao}, portador(a) do CPF nº ${provider.cpf || '___'} e RG nº ${provider.rg || '___'}, residente em ${enderecoProvider}, e-mail: ${provider.email}, celular: ${provider.telefone}${provider.telefone_fixo ? ', telefone: ' + provider.telefone_fixo : ''}`
+    ? `${nomeContratada}, ${provider.nacionalidade || 'brasileiro(a)'}, ${provider.estado_civil || ''}, ${formatarProfissao(provider.profissao, provider.profissao_descricao)}, portador(a) do CPF nº ${provider.cpf || '___'} e RG nº ${provider.rg || '___'}, residente em ${enderecoProvider}, e-mail: ${provider.email}, celular: ${provider.telefone}${provider.telefone_fixo ? ', telefone: ' + provider.telefone_fixo : ''}`
     : `${nomeContratada}${provider.nome_fantasia ? ', nome fantasia "' + provider.nome_fantasia + '"' : ''}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${provider.cnpj || '___'}${provider.inscricao_municipal ? ', Inscrição Municipal nº ' + provider.inscricao_municipal : ''}${provider.conselho_profissional ? ', registrada no ' + provider.conselho_profissional + ' sob o nº ' + provider.numero_registro_conselho : ''}, com sede em ${enderecoProvider}${provider.responsavel_legal ? ', representada neste ato por ' + provider.responsavel_legal + ', CPF nº ' + provider.cpf_responsavel : ''}, e-mail: ${provider.email}, celular: ${provider.telefone}${provider.telefone_fixo ? ', telefone: ' + provider.telefone_fixo : ''}`;
 
   const todosRecursos = [
@@ -130,7 +154,7 @@ export function generateContractHTML(
 <article class="contract-body">
 
 <h1 class="contract-title">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>
-<p class="contract-meta">Nº ${numeroContrato} &nbsp;·&nbsp; ${provider.profissao_descricao || provider.profissao} &nbsp;·&nbsp; ${company.cidade}/${company.uf}</p>
+<p class="contract-meta">Nº ${numeroContrato} &nbsp;·&nbsp; ${formatarProfissao(provider.profissao, provider.profissao_descricao)} &nbsp;·&nbsp; ${company.cidade}/${company.uf}</p>
 
 <section>
 <h2>PARTES CONTRATANTES</h2>
@@ -154,7 +178,7 @@ export function generateContractHTML(
     ${provider.cpf ? `<p class="parte-info">CPF: ${provider.cpf}</p>` : ''}
     ${provider.rg ? `<p class="parte-info">RG: ${provider.rg}</p>` : ''}
     ${(provider.nacionalidade || provider.estado_civil) ? `<p class="parte-info">${[provider.nacionalidade, provider.estado_civil].filter(Boolean).join(', ')}</p>` : ''}
-    <p class="parte-info">${provider.profissao_descricao || provider.profissao}${provider.especialidade ? ' — ' + provider.especialidade : ''}</p>
+    <p class="parte-info">${formatarProfissao(provider.profissao, provider.profissao_descricao)}${provider.especialidade ? ' — ' + provider.especialidade : ''}</p>
     ${provider.conselho_profissional ? `<p class="parte-info">${provider.conselho_profissional}: ${provider.numero_registro_conselho || '___'}</p>` : ''}
     ${enderecoProvider ? `<p class="parte-info">${enderecoProvider}</p>` : ''}
     <p class="parte-info">E-mail: ${provider.email}</p>

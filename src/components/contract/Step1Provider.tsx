@@ -57,13 +57,13 @@ function FieldStatus({ valid, touched }: { valid: boolean; touched: boolean }) {
 }
 
 const PROFISSOES: { value: ProfessionType; label: string; conselho?: string }[] = [
-  { value: 'psicologo',      label: 'Psicólogo(a)',      conselho: 'CRP — Conselho Regional de Psicologia' },
-  { value: 'neuropsicologo', label: 'Neuropsicólogo(a)', conselho: 'CRP — Conselho Regional de Psicologia' },
-  { value: 'fonoaudiologo',  label: 'Fonoaudiólogo(a)',  conselho: 'CFFa — Conselho Regional de Fonoaudiologia' },
-  { value: 'psicopedagogo',  label: 'Psicopedagogo(a)',  conselho: '' },
-  { value: 'secretaria',     label: 'Secretária',        conselho: '' },
-  { value: 'recepcionista',  label: 'Recepcionista',     conselho: '' },
-  { value: 'coordenador',    label: 'Coordenador(a)',    conselho: '' },
+  { value: 'psicologo',      label: 'Psicólogo(a)',      conselho: 'CFP / CRP — Conselho Federal de Psicologia e Conselho Regional de Psicologia' },
+  { value: 'neuropsicologo', label: 'Neuropsicólogo(a)', conselho: 'CFP / CRP — Conselho Federal de Psicologia e Conselho Regional de Psicologia' },
+  { value: 'fonoaudiologo',  label: 'Fonoaudiólogo(a)',  conselho: 'CFFa / CREFONO — Conselho Federal de Fonoaudiologia e Conselho Regional de Fonoaudiologia' },
+  { value: 'psicopedagogo',  label: 'Psicopedagogo(a)',  conselho: 'Sem conselho profissional próprio — ABPp é associação, não conselho fiscalizador' },
+  { value: 'secretaria',     label: 'Secretária',        conselho: 'Sem conselho de classe específico — registro profissional no MTE quando aplicável' },
+  { value: 'recepcionista',  label: 'Recepcionista',     conselho: 'Sem conselho profissional específico' },
+  { value: 'coordenador',    label: 'Coordenador(a)',    conselho: 'Sem conselho próprio — depende da formação de base' },
   { value: 'outro',          label: 'Outro',             conselho: '' },
 ];
 
@@ -101,7 +101,21 @@ export function Step1Provider({ data, onChange, onNext, onSelectExisting }: Step
 
   function handleProfissaoChange(profissao: ProfessionType) {
     const prof = PROFISSOES.find(p => p.value === profissao);
-    onChange({ profissao, conselho_profissional: prof?.conselho || '' });
+    const sugestaoNova = prof?.conselho || '';
+
+    // Lista de todas as sugestões automáticas conhecidas (de qualquer
+    // profissão) — usada para distinguir "o usuário não mexeu no campo"
+    // de "o usuário digitou algo manualmente". Só sobrescreve se o valor
+    // atual estiver vazio ou for uma dessas sugestões automáticas
+    // anteriores; nunca sobrescreve texto digitado manualmente.
+    const todasSugestoesConhecidas = PROFISSOES.map(p => p.conselho || '').filter(Boolean);
+    const valorAtual = data.conselho_profissional || '';
+    const eraSugestaoAutomatica = valorAtual === '' || todasSugestoesConhecidas.includes(valorAtual);
+
+    onChange({
+      profissao,
+      conselho_profissional: eraSugestaoAutomatica ? sugestaoNova : valorAtual,
+    });
   }
 
   async function buscarCNPJ() {
