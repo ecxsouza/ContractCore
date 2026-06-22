@@ -3,6 +3,9 @@
     "src/app/api/claude/route.ts": {
       "maxDuration": 60
     },
+    "src/app/api/assistant/route.ts": {
+      "maxDuration": 60
+    },
     "src/app/api/cron/notifications/route.ts": {
       "maxDuration": 60
     }

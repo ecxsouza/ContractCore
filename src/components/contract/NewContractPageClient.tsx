@@ -2,25 +2,26 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { AppLayout }    from '@/components/layout/AppLayout';
+import { AssistantChat } from '@/components/layout/AssistantChat';
 import { StepIndicator } from '@/components/contract/StepIndicator';
-import { Step1Provider } from '@/components/contract/Step1Provider';
-import { Step2Service } from '@/components/contract/Step2Service';
+import { Step1Provider }   from '@/components/contract/Step1Provider';
+import { Step2Service }    from '@/components/contract/Step2Service';
 import { Step3Remuneration } from '@/components/contract/Step3Remuneration';
-import { Step4Review } from '@/components/contract/Step4Review';
+import { Step4Review }     from '@/components/contract/Step4Review';
 import type { ContractFormData, Company } from '@/types';
 import toast from 'react-hot-toast';
 
 interface NewContractPageClientProps {
-  company:      Company;
+  company:       Company;
   templateData?: Record<string, unknown> | null;
 }
 
 const EMPTY_FORM: ContractFormData = {
   provider: {
-    tipo_pessoa: 'PJ',
-    nome_razao_social: '', nome_fantasia: '', cpf: '', cnpj: '', rg: '',
-    profissao: 'psicologo', especialidade: '',
+    tipo_pessoa:           'PJ',
+    nome_razao_social:     '', nome_fantasia: '', cpf: '', cnpj: '', rg: '',
+    profissao:             'psicologo', especialidade: '',
     conselho_profissional: 'CFP / CRP — Conselho Federal de Psicologia e Conselho Regional de Psicologia',
     numero_registro_conselho: '',
     cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '',
@@ -28,36 +29,44 @@ const EMPTY_FORM: ContractFormData = {
   },
   service: {
     objeto: '', descricao_servicos: '', local_prestacao: '',
-    modalidade: 'presencial', periodicidade: 'conforme agenda pactuada',
+    modalidade:    'presencial', periodicidade: 'conforme agenda pactuada',
     agenda_pactuada: '', exclusividade: false, recursos_disponibilizados: [],
   },
   remuneration: {
-    modelos: ['por_atendimento'], valor_descricao: '',
-    data_pagamento: 'todo dia 05 do mês seguinte à prestação dos serviços',
+    modelos:          ['por_atendimento'], valor_descricao: '',
+    data_pagamento:   'todo dia 05 do mês seguinte à prestação dos serviços',
     formas_pagamento: ['pix'], emite_nota_fiscal: 'obrigatorio',
   },
-  anexos: ['confidencialidade', 'lgpd', 'sem_vinculo_clt'],
+  anexos:                ['confidencialidade', 'lgpd', 'sem_vinculo_clt'],
   vigencia_indeterminada: true,
-  data_vigencia_inicio: new Date().toISOString().split('T')[0],
+  data_vigencia_inicio:   new Date().toISOString().split('T')[0],
 };
 
 const STEPS = [
-  { id: 1, titulo: 'Prestador',   descricao: 'Dados do profissional',     icone: '👤' },
-  { id: 2, titulo: 'Serviço',     descricao: 'Objeto e condições',        icone: '📋' },
-  { id: 3, titulo: 'Remuneração', descricao: 'Honorários e pagamento',    icone: '💰' },
-  { id: 4, titulo: 'Revisão',     descricao: 'Revise e gere o contrato',  icone: '⚖️' },
+  { id: 1, titulo: 'Prestador',   descricao: 'Dados do profissional',    icone: '👤' },
+  { id: 2, titulo: 'Serviço',     descricao: 'Objeto e condições',       icone: '📋' },
+  { id: 3, titulo: 'Remuneração', descricao: 'Honorários e pagamento',   icone: '💰' },
+  { id: 4, titulo: 'Revisão',     descricao: 'Revise e gere o contrato', icone: '⚖️' },
 ];
 
+// Mapeamento de etapa → label legível para o Assistente contextualizado
+const STEP_LABELS: Record<number, string> = {
+  1: 'Novo Contrato — Etapa 1 (Prestador)',
+  2: 'Novo Contrato — Etapa 2 (Serviço)',
+  3: 'Novo Contrato — Etapa 3 (Remuneração)',
+  4: 'Novo Contrato — Etapa 4 (Revisão)',
+};
+
 export function NewContractPageClient({ company, templateData }: NewContractPageClientProps) {
-  const router  = useRouter();
+  const router              = useRouter();
   const [step, setStep]     = useState(1);
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState<ContractFormData>(() => {
-    const tplProvider    = (templateData?.provider_data     as Partial<ContractFormData['provider']>)     || {};
-    const tplService     = (templateData?.service_data      as Partial<ContractFormData['service']>)      || {};
-    const tplRemuneration= (templateData?.remuneration_data  as Partial<ContractFormData['remuneration']>) || {};
-    const tplAnexos      = (templateData?.anexos_padrao     as ContractFormData['anexos'])                || EMPTY_FORM.anexos;
+    const tplProvider     = (templateData?.provider_data     as Partial<ContractFormData['provider']>)     || {};
+    const tplService      = (templateData?.service_data      as Partial<ContractFormData['service']>)      || {};
+    const tplRemuneration = (templateData?.remuneration_data as Partial<ContractFormData['remuneration']>) || {};
+    const tplAnexos       = (templateData?.anexos_padrao     as ContractFormData['anexos'])                || EMPTY_FORM.anexos;
 
     return {
       ...EMPTY_FORM,
@@ -106,9 +115,9 @@ export function NewContractPageClient({ company, templateData }: NewContractPage
       // componente pai ainda não tenha sido propagado pelo React.
       const formToSave = overrideData ? { ...form, ...overrideData } : form;
       const res = await fetch('/api/contracts', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ formData: formToSave }),
+        body:    JSON.stringify({ formData: formToSave }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -125,7 +134,10 @@ export function NewContractPageClient({ company, templateData }: NewContractPage
   }
 
   return (
-    <AppLayout company={company}>
+    // disableAssistant=true: desabilita o assistente global do AppLayout.
+    // O assistente contextualizado é renderizado abaixo, com etapa e formData.
+    // Garante que não existam dois botões flutuantes na mesma tela.
+    <AppLayout company={company} disableAssistant>
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-brand-900">Novo Contrato de Prestação de Serviços</h1>
@@ -171,6 +183,14 @@ export function NewContractPageClient({ company, templateData }: NewContractPage
           )}
         </div>
       </div>
+
+      {/* Assistente contextualizado — sabe em qual etapa o usuário está
+          e tem acesso ao resumo seguro do formulário em andamento.
+          Substitui o assistente global desabilitado acima. */}
+      <AssistantChat
+        pageContext={STEP_LABELS[step]}
+        formData={form}
+      />
     </AppLayout>
   );
 }
