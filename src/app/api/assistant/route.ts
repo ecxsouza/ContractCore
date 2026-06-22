@@ -171,14 +171,17 @@ export async function POST(request: NextRequest) {
 
     const { messages, pageContext, formContext } = body;
 
-    if (!messages || messages.length === 0) {
+    // ── 4. Validar messages é array não-vazio ─────────────────────────────
+    if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Mensagens obrigatórias' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // ── 4a. Validar estrutura de cada mensagem ────────────────────────────
+    // ── 4a. Validar estrutura e conteúdo de cada mensagem ─────────────────
+    // Rejeita roles inválidos, content não-string, vazio e user-msgs longas.
+    // Todas as mensagens do histórico são verificadas — não apenas a última.
     const VALID_ROLES = new Set(['user', 'assistant']);
     for (let i = 0; i < messages.length; i++) {
       const m = messages[i];
@@ -206,15 +209,22 @@ export async function POST(request: NextRequest) {
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
+      // Proteção de custo: limitar tamanho de mensagens do usuário em todo o histórico
+      if (m.role === 'user' && m.content.length > MAX_USER_MSG_CHARS) {
+        return new Response(
+          JSON.stringify({
+            error: `Mensagem na posição ${i} excede o limite de ${MAX_USER_MSG_CHARS} caracteres.`,
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    // ── 4. Validar tamanho da última mensagem do usuário ──────────────────
-    const lastUserMsg = messages[messages.length - 1];
-    if (lastUserMsg.role === 'user' && lastUserMsg.content.length > MAX_USER_MSG_CHARS) {
+    // ── 4b. Exigir que a última mensagem seja do usuário ──────────────────
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== 'user') {
       return new Response(
-        JSON.stringify({
-          error: `Mensagem muito longa. Limite: ${MAX_USER_MSG_CHARS} caracteres. Sua mensagem tem ${lastUserMsg.content.length} caracteres.`,
-        }),
+        JSON.stringify({ error: 'A última mensagem deve ser do usuário.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -234,9 +244,18 @@ export async function POST(request: NextRequest) {
       ? formContext.slice(0, MAX_FORM_CTX_CHARS)
       : undefined;
 
-    // ── 7. Montar mensagens com contexto injetado na última mensagem ───────
-    const previousMsgs = historyToSend.slice(0, -1);
-    const currentMsg   = historyToSend[historyToSend.length - 1];
+    // ── 7. Sanitizar histórico e montar mensagens com contexto ────────────
+    // Trunca respostas do assistente que possam ser muito longas (ex: após
+    // resposta verbosa anterior) para proteger o tamanho do payload ao Claude.
+    // Mensagens do usuário já foram validadas em ≤500 chars acima.
+    const MAX_ASSISTANT_MSG_CHARS = 2_000;
+    const sanitizedHistory = historyToSend.map(m => ({
+      role:    m.role as 'user' | 'assistant',
+      content: m.content.slice(0, MAX_ASSISTANT_MSG_CHARS),
+    }));
+
+    const previousMsgs = sanitizedHistory.slice(0, -1);
+    const currentMsg   = sanitizedHistory[sanitizedHistory.length - 1];
 
     let contextPrefix = '';
     if (safePageCtx) contextPrefix += `[Contexto da tela: "${safePageCtx}"]\n`;

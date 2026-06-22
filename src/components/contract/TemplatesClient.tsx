@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileCode2, Plus, Zap, Users, Star, ArrowRight, Trash2, AlertTriangle, X } from 'lucide-react';
+import { FileCode2, Plus, Zap, Users, Star, ArrowRight, Trash2, AlertTriangle, X,
+  Brain, Mic, BookOpen, CalendarDays, Briefcase, UserCog, FileText } from 'lucide-react';
 import type { Company, ContractTemplate } from '@/types';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
@@ -28,6 +29,19 @@ const PROFISSAO_CORES: Record<string, string> = {
   recepcionista:  'bg-slate-100 text-slate-700',
   coordenador:    'bg-brand-100 text-brand-700',
   outro:          'bg-slate-100 text-slate-600',
+};
+
+// Ícone real para cada profissão — nunca exibe "?" no card.
+// Fallback: FileText para qualquer profissão não mapeada.
+const PROFISSAO_ICONES: Record<string, React.ElementType> = {
+  psicologo:      Users,        // atendimento / relação interpessoal
+  neuropsicologo: Brain,        // neuropsicologia / avaliação cognitiva
+  fonoaudiologo:  Mic,          // fala / comunicação / voz
+  psicopedagogo:  BookOpen,     // aprendizagem / educação
+  secretaria:     CalendarDays, // agenda / organização administrativa
+  recepcionista:  CalendarDays, // agenda / atendimento ao público
+  coordenador:    Briefcase,    // gestão / coordenação
+  outro:          UserCog,      // profissional genérico configurável
 };
 
 interface Props {
@@ -86,9 +100,12 @@ export function TemplatesClient({ company, templates }: Props) {
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm',
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
             PROFISSAO_CORES[template.profissao] || 'bg-slate-100 text-slate-600')}>
-            {PROFISSAO_LABELS[template.profissao]?.[0] || '?'}
+            {(() => {
+              const Icon = PROFISSAO_ICONES[template.profissao] ?? FileText;
+              return <Icon className="w-4 h-4" />;
+            })()}
           </div>
           <div className="min-w-0">
             <p className="font-semibold text-brand-900 text-sm truncate">{template.nome}</p>
