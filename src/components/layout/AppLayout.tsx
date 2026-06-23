@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import {
   LayoutDashboard, FileText, Plus, Settings,
   LogOut, Menu, X, Building2, Users, FileCode2,
-  AlertTriangle, BarChart3, ChevronRight,
+  AlertTriangle, BarChart3, ClipboardList,
 } from 'lucide-react';
 import { AssistantChat } from '@/components/layout/AssistantChat';
 import type { Company } from '@/types';
@@ -28,14 +28,20 @@ interface AppLayoutProps {
 
 // ─── Navegação ────────────────────────────────────────────────────────────────
 
+// Itens com `noPrefix` usam igualdade exata ou regex explícita para rota ativa
+// em vez de `startsWith` — evita que '/patients' ative '/patient-terms' ou
+// que '/contracts/new' fique sempre ativo dentro de '/contracts'.
 const navItems = [
-  { href: '/dashboard',    label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/contracts',    label: 'Contratos',      icon: FileText },
-  { href: '/providers',    label: 'Prestadores',    icon: Users },
-  { href: '/templates',    label: 'Templates',      icon: FileCode2 },
-  { href: '/compliance',   label: 'Compliance',     icon: AlertTriangle },
-  { href: '/reports',      label: 'Relatórios',     icon: BarChart3 },
-  { href: '/contracts/new', label: 'Novo Contrato', icon: Plus, highlight: true },
+  { href: '/dashboard',      label: 'Dashboard',           icon: LayoutDashboard },
+  { href: '/contracts',      label: 'Contratos',           icon: FileText },
+  { href: '/providers',      label: 'Prestadores',         icon: Users },
+  { href: '/patient-terms',  label: 'Termos de Pacientes', icon: ClipboardList },
+  { href: '/patients',       label: 'Pacientes',           icon: Users },
+  { href: '/templates',      label: 'Templates',           icon: FileCode2 },
+  { href: '/compliance',     label: 'Compliance',          icon: AlertTriangle },
+  { href: '/reports',        label: 'Relatórios',          icon: BarChart3 },
+  { href: '/contracts/new',  label: 'Novo Contrato',       icon: Plus, highlight: true },
+  { href: '/patient-terms/new', label: 'Novo Termo',       icon: ClipboardList, highlight: true, secondary: true },
 ];
 
 const settingsItems = [
@@ -48,18 +54,25 @@ const settingsItems = [
 // respostas mais relevantes sobre a plataforma.
 
 function resolvePageContext(pathname: string): string {
-  if (pathname === '/dashboard')                          return 'Dashboard';
-  if (pathname === '/contracts/new')                      return 'Novo Contrato';
+  if (pathname === '/dashboard')                               return 'Dashboard';
+  if (pathname === '/contracts/new')                           return 'Novo Contrato';
   if (pathname === '/contracts' || pathname === '/contracts/') return 'Lista de Contratos';
-  if (/^\/contracts\/[^/]+\/versions/.test(pathname))    return 'Histórico de Versões';
-  if (/^\/contracts\/[^/]+/.test(pathname))              return 'Detalhe do Contrato';
-  if (pathname === '/providers')                          return 'Prestadores';
-  if (/^\/providers\//.test(pathname))                   return 'Detalhe do Prestador';
-  if (pathname === '/templates')                          return 'Templates';
-  if (pathname === '/compliance')                         return 'Compliance';
-  if (pathname === '/reports')                            return 'Relatórios';
-  if (pathname === '/settings/company')                   return 'Configurações da Empresa';
-  if (pathname === '/settings/profile')                   return 'Perfil do Usuário';
+  if (/^\/contracts\/[^/]+\/versions/.test(pathname))         return 'Histórico de Versões';
+  if (/^\/contracts\/[^/]+/.test(pathname))                   return 'Detalhe do Contrato';
+  if (pathname === '/providers')                               return 'Prestadores';
+  if (/^\/providers\//.test(pathname))                        return 'Detalhe do Prestador';
+  // Termos de Pacientes — verificar antes de /patients para evitar match parcial
+  if (pathname === '/patient-terms/new')                       return 'Novo Termo de Paciente';
+  if (pathname === '/patient-terms' || pathname === '/patient-terms/') return 'Lista de Termos de Pacientes';
+  if (/^\/patient-terms\/[^/]+/.test(pathname))               return 'Detalhe do Termo de Paciente';
+  // Pacientes
+  if (pathname === '/patients' || pathname === '/patients/')   return 'Lista de Pacientes';
+  if (/^\/patients\/[^/]+/.test(pathname))                    return 'Detalhe do Paciente';
+  if (pathname === '/templates')                               return 'Templates';
+  if (pathname === '/compliance')                              return 'Compliance';
+  if (pathname === '/reports')                                 return 'Relatórios';
+  if (pathname === '/settings/company')                        return 'Configurações da Empresa';
+  if (pathname === '/settings/profile')                        return 'Perfil do Usuário';
   return 'ContractCore Elite'; // fallback genérico
 }
 
@@ -98,9 +111,23 @@ export function AppLayout({ children, company, disableAssistant }: AppLayoutProp
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map(item => {
-          const active =
-            pathname === item.href ||
-            (item.href !== '/dashboard' && item.href !== '/contracts/new' && pathname.startsWith(item.href));
+          // Regras de active:
+          // — itens highlight (Novo Contrato, Novo Termo) nunca ficam ativos por startsWith
+          // — /dashboard: só ativo na rota exata
+          // — /patients: não pode ativar /patient-terms (startsWith daria false positive)
+          // — demais: startsWith cobre listagem + detalhe + sub-rotas
+          let active = false;
+          if (!item.highlight) {
+            if (item.href === '/dashboard') {
+              active = pathname === '/dashboard';
+            } else if (item.href === '/patients') {
+              // Usar regex para não capturar /patient-terms
+              active = pathname === '/patients' || /^\/patients\//.test(pathname);
+            } else {
+              active = pathname === item.href || pathname.startsWith(item.href + '/');
+            }
+          }
+
           return (
             <Link
               key={item.href}
@@ -108,8 +135,10 @@ export function AppLayout({ children, company, disableAssistant }: AppLayoutProp
               onClick={() => setMobileOpen(false)}
               className={clsx(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
-                item.highlight
+                item.highlight && !item.secondary
                   ? 'bg-gold-500 hover:bg-gold-400 text-white shadow-sm mt-2'
+                  : item.highlight && item.secondary
+                  ? 'bg-white/10 hover:bg-white/20 text-white/90 border border-white/20 mt-1'
                   : active
                   ? 'bg-white/15 text-white'
                   : 'text-white/60 hover:text-white hover:bg-white/8'

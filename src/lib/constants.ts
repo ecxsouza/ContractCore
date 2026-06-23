@@ -103,3 +103,107 @@ export function storagePath(
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `${userId}/${companyId}/${entity}/${safe}`;
 }
+
+// ================================================================
+// MÓDULO TERMOS DE PACIENTES
+// Constantes separadas dos contratos de prestadores.
+// Não alterar os blocos acima (contratos/prestadores).
+// ================================================================
+
+// ── STATUS DO TERMO DE PACIENTE ───────────────────────────────────
+// Valores exatos usados no banco (snake_case, sem acento, migration 007)
+export const PATIENT_TERM_STATUS = {
+  RASCUNHO:             'rascunho',
+  ATIVO:                'ativo',
+  PENDENTE_ASSINATURA:  'pendente_assinatura',
+  ASSINADO:             'assinado',
+  CANCELADO:            'cancelado',
+  EXPIRADO:             'expirado',
+  SUBSTITUIDO:          'substituido',
+} as const;
+
+export type PatientTermStatusValue =
+  typeof PATIENT_TERM_STATUS[keyof typeof PATIENT_TERM_STATUS];
+
+export const PATIENT_TERM_STATUS_LABELS: Record<PatientTermStatusValue, string> = {
+  rascunho:             'Rascunho',
+  ativo:                'Ativo',
+  pendente_assinatura:  'Pendente de Assinatura',
+  assinado:             'Assinado',
+  cancelado:            'Cancelado',
+  expirado:             'Expirado',
+  substituido:          'Substituído',
+};
+
+export const PATIENT_TERM_STATUS_DISPLAY: Record<PatientTermStatusValue, {
+  label:    string;
+  cls:      string;
+  badgeCls: string;
+}> = {
+  rascunho:            { label: 'Rascunho',              cls: 'badge-gray',   badgeCls: 'bg-slate-100 text-slate-600'    },
+  ativo:               { label: 'Ativo',                 cls: 'badge-green',  badgeCls: 'bg-emerald-100 text-emerald-700'},
+  pendente_assinatura: { label: 'Pendente de Assinatura',cls: 'badge-blue',   badgeCls: 'bg-brand-100 text-brand-700'   },
+  assinado:            { label: 'Assinado',              cls: 'badge-green',  badgeCls: 'bg-emerald-100 text-emerald-700'},
+  cancelado:           { label: 'Cancelado',             cls: 'badge-red',    badgeCls: 'bg-red-100 text-red-700'       },
+  expirado:            { label: 'Expirado',              cls: 'badge-yellow', badgeCls: 'bg-amber-100 text-amber-700'   },
+  substituido:         { label: 'Substituído',           cls: 'badge-gray',   badgeCls: 'bg-slate-100 text-slate-500'   },
+};
+
+export function getPatientTermStatusDisplay(status: string) {
+  return PATIENT_TERM_STATUS_DISPLAY[status as PatientTermStatusValue] || {
+    label:    status,
+    cls:      'badge-gray',
+    badgeCls: 'bg-slate-100 text-slate-600',
+  };
+}
+
+// ── TIPOS DE TERMO ────────────────────────────────────────────────
+export const PATIENT_TERM_TYPES = {
+  PARTICULAR_ADULTO: 'particular_adulto',
+  PARTICULAR_MENOR:  'particular_menor',
+  AVALIACAO_NEURO:   'avaliacao_neuro',
+  ONLINE_ADULTO:     'online_adulto',
+  // Fase 2: ONLINE_MENOR, CONVENIO_ADULTO, CONVENIO_MENOR
+} as const;
+
+export type PatientTermTypeValue =
+  typeof PATIENT_TERM_TYPES[keyof typeof PATIENT_TERM_TYPES];
+
+export const PATIENT_TERM_TYPE_LABELS: Record<PatientTermTypeValue, string> = {
+  particular_adulto: 'Particular — Adulto',
+  particular_menor:  'Particular — Menor de Idade',
+  avaliacao_neuro:   'Avaliação Neuropsicológica',
+  online_adulto:     'Atendimento Online — Adulto',
+};
+
+// ── MODALIDADE ────────────────────────────────────────────────────
+export const PATIENT_TERM_MODALIDADE_LABELS: Record<string, string> = {
+  presencial: 'Presencial',
+  online:     'Online',
+  hibrido:    'Híbrido',
+};
+
+// ── TIPO DE PAGAMENTO ─────────────────────────────────────────────
+export const PATIENT_TERM_PAYMENT_LABELS: Record<string, string> = {
+  particular: 'Particular',
+  convenio:   'Convênio',
+};
+
+// ── NOTA FISCAL ───────────────────────────────────────────────────
+export const PATIENT_TERM_NOTA_FISCAL_LABELS: Record<string, string> = {
+  obrigatorio:       'Emissão obrigatória',
+  quando_solicitado: 'Quando solicitado',
+  nao_emite:         'Não emite',
+};
+
+// ── GRAU DE PARENTESCO ────────────────────────────────────────────
+export const PATIENT_RESPONSIBLE_KINSHIP_LABELS: Record<string, string> = {
+  mae:     'Mãe',
+  pai:     'Pai',
+  avo:     'Avó / Avô',
+  tutor:   'Tutor(a)',
+  curador: 'Curador(a)',
+  conjuge: 'Cônjuge',
+  outro:   'Outro',
+};
+

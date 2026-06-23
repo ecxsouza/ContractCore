@@ -408,3 +408,32 @@ export interface ContractReport {
   assinado:            boolean;
   data_assinatura:     string;
 }
+
+// ================================================================
+// MÓDULO TERMOS DE PACIENTES — Re-exports
+// Tipos definidos em src/lib/patientTerms/types.ts
+// ================================================================
+
+export type {
+  Patient,
+  PatientResponsible,
+  PatientTermTemplate,
+  PatientTerm,
+  PatientTermAuditLog,
+  PatientTermFormData,
+  PatientTermFormPaciente,
+  PatientTermFormResponsavel,
+  PatientTermFormServico,
+  PatientTermFormFinanceiro,
+  PatientTermFormRegras,
+  PatientTermFormConsentimentos,
+  PatientTermStatus,
+  PatientTermType,
+  PatientTermModalidade,
+  PatientTermTipoPagamento,
+  PatientTermNotaFiscal,
+  PatientResponsibleKinship,
+  PatientTermAuditAction,
+} from '@/lib/patientTerms/types';
+
+export { EMPTY_PATIENT_TERM_FORM } from '@/lib/patientTerms/types';
