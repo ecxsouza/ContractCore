@@ -5,17 +5,21 @@
 // NÃO exibe dados clínicos (diagnóstico, CID, evolução, etc.)
 // ================================================================
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, User, Users, FileText, Plus, Phone, Mail,
   MapPin, Calendar, ShieldCheck, ShieldAlert,
+  Pencil, Trash2, Loader2, AlertTriangle,
 } from 'lucide-react';
 import { PatientTermCard } from '@/components/patientTerms/PatientTermCard';
+import { EditPatientModal } from '@/components/patients/EditPatientModal';
 import {
   PATIENT_TERM_STATUS_LABELS,
   PATIENT_TERM_TYPE_LABELS,
 } from '@/lib/constants';
+import toast from 'react-hot-toast';
 import clsx from 'clsx';
 
 function formatDateBR(iso?: string | null): string {
@@ -42,8 +46,33 @@ interface PatientDetailClientProps {
   terms:       any[];
 }
 
-export function PatientDetailClient({ patient, responsibles, terms }: PatientDetailClientProps) {
+export function PatientDetailClient({ patient: initialPatient, responsibles, terms }: PatientDetailClientProps) {
   const router = useRouter();
+  const [patient, setPatient] = useState<any>(initialPatient);
+  const [editing,       setEditing]       = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError,   setDeleteError]   = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  async function handleDelete() {
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/patients/${patient.id}`, { method: 'DELETE' });
+      if (res.status === 409) {
+        const err = await res.json();
+        setDeleteError(err.error || 'Paciente possui termos vinculados.');
+        return;
+      }
+      if (!res.ok) throw new Error('Erro ao excluir');
+      toast.success('Paciente excluído');
+      router.push('/patients');
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Erro ao excluir');
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
 
   const enderecoPartes = [
     patient.logradouro, patient.numero,
@@ -54,6 +83,57 @@ export function PatientDetailClient({ patient, responsibles, terms }: PatientDet
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in">
+
+      {/* Modal de edição */}
+      {editing && (
+        <EditPatientModal
+          patient={patient}
+          onClose={() => setEditing(false)}
+          onSaved={updated => { setPatient(updated); setEditing(false); }}
+        />
+      )}
+
+      {/* Modal de confirmação de exclusão */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={e => { if (e.target === e.currentTarget) { setShowDeleteConfirm(false); setDeleteError(null); } }}>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900">Excluir paciente</h3>
+                <p className="text-sm text-slate-500">{patient.nome_completo}</p>
+              </div>
+            </div>
+            {deleteError ? (
+              <div className="mb-4 flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-3">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <p className="text-sm">{deleteError}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600 mb-5">
+                Esta ação não pode ser desfeita. Todos os dados administrativos serão removidos permanentemente.
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setShowDeleteConfirm(false); setDeleteError(null); }}
+                className="btn-secondary">
+                {deleteError ? 'Fechar' : 'Cancelar'}
+              </button>
+              {!deleteError && (
+                <button onClick={handleDelete} disabled={deleteLoading}
+                  className="btn-primary bg-red-600 hover:bg-red-700 flex items-center gap-2">
+                  {deleteLoading
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Excluindo…</>
+                    : 'Confirmar exclusão'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -113,13 +193,21 @@ export function PatientDetailClient({ patient, responsibles, terms }: PatientDet
           </div>
         </div>
 
-        {/* Ação: novo termo para este paciente */}
-        <div className="mt-5 pt-5 border-t border-slate-100">
+        {/* Ações: novo termo + editar + excluir */}
+        <div className="mt-5 pt-5 border-t border-slate-100 flex flex-wrap gap-3">
           <Link
             href={`/patient-terms/new?patient_id=${patient.id}`}
-            className="btn-primary flex items-center gap-2 w-fit">
+            className="btn-primary flex items-center gap-2">
             <Plus className="w-4 h-4" /> Novo Termo para este Paciente
           </Link>
+          <button onClick={() => setEditing(true)}
+            className="btn-secondary flex items-center gap-2">
+            <Pencil className="w-4 h-4" /> Editar
+          </button>
+          <button onClick={() => { setShowDeleteConfirm(true); setDeleteError(null); }}
+            className="btn-ghost flex items-center gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200">
+            <Trash2 className="w-4 h-4" /> Excluir
+          </button>
         </div>
       </div>
 

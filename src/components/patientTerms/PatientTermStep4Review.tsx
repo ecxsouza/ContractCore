@@ -111,8 +111,11 @@ export function PatientTermStep4Review({
           Todos os consentimentos abaixo são obrigatórios para finalizar o termo.
         </p>
 
-        <div className="space-y-3">
-          {obrigatorios.map(({ key, label }) => (
+        {obrigatorios.length === 0 ? (
+          <p className="text-xs text-slate-400 italic">Nenhum consentimento específico exigido para esta configuração.</p>
+        ) : (
+          <div className="space-y-3">
+            {obrigatorios.map(({ key, label }) => (
             <label key={key}
               className={clsx(
                 'flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all',
@@ -129,9 +132,10 @@ export function PatientTermStep4Review({
               <span className="text-xs text-slate-700 leading-relaxed">{label}</span>
             </label>
           ))}
-        </div>
+          </div>
+        )}
 
-        {!todosConsentidos && (
+        {!todosConsentidos && obrigatorios.length > 0 && (
           <div className="mt-4 flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
             <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             <p className="text-xs">Todos os consentimentos acima precisam ser marcados antes de salvar.</p>

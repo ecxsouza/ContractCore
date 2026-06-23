@@ -140,6 +140,13 @@ export function PatientTermDetailClient({ term, patient }: PatientTermDetailClie
               <XCircle className="w-4 h-4" /> Cancelar Termo
             </button>
           )}
+
+          {/* Duplicar e editar — gera novo termo com os mesmos dados administrativos */}
+          <Link
+            href={`/patient-terms/new?duplicate_from=${term.id}`}
+            className="btn-secondary flex items-center gap-2">
+            <FileText className="w-4 h-4" /> Duplicar e Editar
+          </Link>
         </div>
 
         {/* Confirmação de cancelamento */}

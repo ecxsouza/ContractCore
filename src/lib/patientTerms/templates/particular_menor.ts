@@ -23,6 +23,35 @@ export function renderParticularMenor(ctx: TemplateContext): string {
   const nomeRespLegal = esc(responsavel_legal.nome_completo);
   const nomeRespFin   = mesmo_responsavel ? nomeRespLegal : esc(responsavel_financeiro.nome_completo);
 
+  // Montar itens de consentimento — card só aparece se houver ao menos um marcado
+  const consentItems = [
+    consentimentos.consentimento_responsavel_menor ? `
+    <div class="pt-consent-item">
+      <div class="pt-consent-check"></div>
+      <span class="pt-consent-text">Autorizo expressamente o atendimento do menor <strong>${esc(paciente.nome_completo)}</strong> e assumo as obrigações deste termo como responsável legal.</span>
+    </div>` : '',
+    consentimentos.consentimento_sigilo ? `
+    <div class="pt-consent-item">
+      <div class="pt-consent-check"></div>
+      <span class="pt-consent-text">Declaro ciência sobre o sigilo profissional e seus limites legais, incluindo a avaliação profissional sobre o que pode ser compartilhado com responsáveis.</span>
+    </div>` : '',
+    consentimentos.consentimento_lgpd ? `
+    <div class="pt-consent-item">
+      <div class="pt-consent-check"></div>
+      <span class="pt-consent-text">Autorizo o tratamento dos dados pessoais do menor e meus próprios dados conforme a LGPD e as finalidades descritas neste termo.</span>
+    </div>` : '',
+    consentimentos.consentimento_contato_admin ? `
+    <div class="pt-consent-item">
+      <div class="pt-consent-check"></div>
+      <span class="pt-consent-text">Autorizo contato administrativo por WhatsApp e/ou e-mail.</span>
+    </div>` : '',
+    consentimentos.consentimento_sem_promessa ? `
+    <div class="pt-consent-item">
+      <div class="pt-consent-check"></div>
+      <span class="pt-consent-text">Declaro ciência de que não há promessa de resultado terapêutico.</span>
+    </div>` : '',
+  ].filter(Boolean).join('');
+
   return `
 <section class="pt-section">
   <h2 class="pt-section-title">Identificação das Partes</h2>
@@ -170,34 +199,11 @@ export function renderParticularMenor(ctx: TemplateContext): string {
   </div>
 </section>
 
+${consentItems ? `
 <div class="pt-consent-block">
   <div class="pt-consent-title">Consentimentos do Responsável Legal</div>
-  ${consentimentos.consentimento_responsavel_menor ? `
-  <div class="pt-consent-item">
-    <div class="pt-consent-check"></div>
-    <span class="pt-consent-text">Autorizo expressamente o atendimento do menor <strong>${esc(paciente.nome_completo)}</strong> e assumo as obrigações deste termo como responsável legal.</span>
-  </div>` : ''}
-  ${consentimentos.consentimento_sigilo ? `
-  <div class="pt-consent-item">
-    <div class="pt-consent-check"></div>
-    <span class="pt-consent-text">Declaro ciência sobre o sigilo profissional e seus limites legais, incluindo a avaliação profissional sobre o que pode ser compartilhado com responsáveis.</span>
-  </div>` : ''}
-  ${consentimentos.consentimento_lgpd ? `
-  <div class="pt-consent-item">
-    <div class="pt-consent-check"></div>
-    <span class="pt-consent-text">Autorizo o tratamento dos dados pessoais do menor e meus próprios dados conforme a LGPD e as finalidades descritas neste termo.</span>
-  </div>` : ''}
-  ${consentimentos.consentimento_contato_admin ? `
-  <div class="pt-consent-item">
-    <div class="pt-consent-check"></div>
-    <span class="pt-consent-text">Autorizo contato administrativo por WhatsApp e/ou e-mail.</span>
-  </div>` : ''}
-  ${consentimentos.consentimento_sem_promessa ? `
-  <div class="pt-consent-item">
-    <div class="pt-consent-check"></div>
-    <span class="pt-consent-text">Declaro ciência de que não há promessa de resultado terapêutico.</span>
-  </div>` : ''}
-</div>
+  ${consentItems}
+</div>` : ''}
 
 <section class="pt-signature-section">
   <p class="pt-sig-city">${esc(company.cidade)}/${esc(company.uf)}, ${hoje()}.</p>

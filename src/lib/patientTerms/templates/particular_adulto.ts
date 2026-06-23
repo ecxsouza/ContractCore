@@ -36,6 +36,30 @@ export function renderParticularAdulto(ctx: TemplateContext): string {
 
   const formasPgto = (financeiro.forma_pagamento || []).join(', ').toUpperCase() || '—';
 
+  // Montar itens de consentimento antes do HTML — card só aparece se houver ao menos um marcado
+  const consentItems = [
+    consentimentos.consentimento_sigilo ? `
+    <div class="pt-consent-item">
+      <div class="pt-consent-check"></div>
+      <span class="pt-consent-text">Declaro ciência sobre o sigilo profissional e seus limites legais.</span>
+    </div>` : '',
+    consentimentos.consentimento_lgpd ? `
+    <div class="pt-consent-item">
+      <div class="pt-consent-check"></div>
+      <span class="pt-consent-text">Autorizo o tratamento dos meus dados pessoais conforme a LGPD e as finalidades descritas neste termo.</span>
+    </div>` : '',
+    consentimentos.consentimento_contato_admin ? `
+    <div class="pt-consent-item">
+      <div class="pt-consent-check"></div>
+      <span class="pt-consent-text">Autorizo contato administrativo por WhatsApp e/ou e-mail.</span>
+    </div>` : '',
+    consentimentos.consentimento_sem_promessa ? `
+    <div class="pt-consent-item">
+      <div class="pt-consent-check"></div>
+      <span class="pt-consent-text">Declaro ciência de que não há promessa de resultado terapêutico.</span>
+    </div>` : '',
+  ].filter(Boolean).join('');
+
   return `
 <section class="pt-section">
   <h2 class="pt-section-title">Identificação das Partes</h2>
@@ -161,29 +185,11 @@ export function renderParticularAdulto(ctx: TemplateContext): string {
   </div>
 </section>
 
+${consentItems ? `
 <div class="pt-consent-block">
   <div class="pt-consent-title">Consentimentos do Paciente</div>
-  ${consentimentos.consentimento_sigilo ? `
-  <div class="pt-consent-item">
-    <div class="pt-consent-check"></div>
-    <span class="pt-consent-text">Declaro ciência sobre o sigilo profissional e seus limites legais.</span>
-  </div>` : ''}
-  ${consentimentos.consentimento_lgpd ? `
-  <div class="pt-consent-item">
-    <div class="pt-consent-check"></div>
-    <span class="pt-consent-text">Autorizo o tratamento dos meus dados pessoais conforme a LGPD e as finalidades descritas neste termo.</span>
-  </div>` : ''}
-  ${consentimentos.consentimento_contato_admin ? `
-  <div class="pt-consent-item">
-    <div class="pt-consent-check"></div>
-    <span class="pt-consent-text">Autorizo contato administrativo por WhatsApp e/ou e-mail.</span>
-  </div>` : ''}
-  ${consentimentos.consentimento_sem_promessa ? `
-  <div class="pt-consent-item">
-    <div class="pt-consent-check"></div>
-    <span class="pt-consent-text">Declaro ciência de que não há promessa de resultado terapêutico.</span>
-  </div>` : ''}
-</div>
+  ${consentItems}
+</div>` : ''}
 
 <section class="pt-signature-section">
   <p class="pt-sig-city">${esc(company.cidade)}/${esc(company.uf)}, ${hoje()}.</p>

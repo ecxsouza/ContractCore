@@ -26,32 +26,66 @@ interface AppLayoutProps {
   disableAssistant?: boolean;
 }
 
-// ─── Navegação ────────────────────────────────────────────────────────────────
+// ─── Estrutura do menu em grupos ──────────────────────────────────────────────
 
-// Itens com `noPrefix` usam igualdade exata ou regex explícita para rota ativa
-// em vez de `startsWith` — evita que '/patients' ative '/patient-terms' ou
-// que '/contracts/new' fique sempre ativo dentro de '/contracts'.
-const navItems = [
-  { href: '/dashboard',      label: 'Dashboard',           icon: LayoutDashboard },
-  { href: '/contracts',      label: 'Contratos',           icon: FileText },
-  { href: '/providers',      label: 'Prestadores',         icon: Users },
-  { href: '/patient-terms',  label: 'Termos de Pacientes', icon: ClipboardList },
-  { href: '/patients',       label: 'Pacientes',           icon: Users },
-  { href: '/templates',      label: 'Templates',           icon: FileCode2 },
-  { href: '/compliance',     label: 'Compliance',          icon: AlertTriangle },
-  { href: '/reports',        label: 'Relatórios',          icon: BarChart3 },
-  { href: '/contracts/new',  label: 'Novo Contrato',       icon: Plus, highlight: true },
-  { href: '/patient-terms/new', label: 'Novo Termo',       icon: ClipboardList, highlight: true, secondary: true },
+interface NavItem {
+  href:       string;
+  label:      string;
+  icon:       React.ComponentType<{ className?: string }>;
+  highlight?: boolean;
+  secondary?: boolean;
+}
+
+interface NavGroup {
+  title?:   string;   // undefined = sem cabeçalho de grupo
+  items:    NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    items: [
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: 'Contratos de Prestadores',
+    items: [
+      { href: '/contracts',    label: 'Contratos',    icon: FileText  },
+      { href: '/providers',    label: 'Prestadores',  icon: Users     },
+      { href: '/templates',    label: 'Templates',    icon: FileCode2 },
+      { href: '/compliance',   label: 'Compliance',   icon: AlertTriangle },
+      { href: '/reports',      label: 'Relatórios',   icon: BarChart3 },
+      { href: '/contracts/new',label: 'Novo Contrato',icon: Plus,        highlight: true },
+    ],
+  },
+  {
+    title: 'Termos de Pacientes',
+    items: [
+      { href: '/patient-terms', label: 'Termos de Pacientes', icon: ClipboardList },
+      { href: '/patients',      label: 'Pacientes',           icon: Users },
+      { href: '/patient-terms/new', label: 'Novo Termo',      icon: ClipboardList, highlight: true, secondary: true },
+    ],
+  },
 ];
 
-const settingsItems = [
+const settingsItems: NavItem[] = [
   { href: '/settings/company', label: 'Empresa', icon: Building2 },
   { href: '/settings/profile', label: 'Perfil',  icon: Settings  },
 ];
 
+// ─── Lógica de rota ativa ─────────────────────────────────────────────────────
+
+function isActive(href: string, pathname: string, highlight?: boolean): boolean {
+  if (highlight) return false; // botões de ação nunca ficam ativos
+  if (href === '/dashboard') return pathname === '/dashboard';
+  // /patients não deve ativar /patient-terms (prefixo compartilhado)
+  if (href === '/patients') {
+    return pathname === '/patients' || /^\/patients\//.test(pathname);
+  }
+  return pathname === href || pathname.startsWith(href + '/');
+}
+
 // ─── Mapeamento de rota → label legível para o Assistente ────────────────────
-// O assistente usa este contexto para saber onde o usuário está e dar
-// respostas mais relevantes sobre a plataforma.
 
 function resolvePageContext(pathname: string): string {
   if (pathname === '/dashboard')                               return 'Dashboard';
@@ -73,7 +107,7 @@ function resolvePageContext(pathname: string): string {
   if (pathname === '/reports')                                 return 'Relatórios';
   if (pathname === '/settings/company')                        return 'Configurações da Empresa';
   if (pathname === '/settings/profile')                        return 'Perfil do Usuário';
-  return 'ContractCore Elite'; // fallback genérico
+  return 'ContractCore Elite';
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -92,7 +126,7 @@ export function AppLayout({ children, company, disableAssistant }: AppLayoutProp
 
   const pageContext = resolvePageContext(pathname);
 
-  // ── Sidebar (usada tanto no desktop quanto no drawer mobile) ──
+  // ── Sidebar ──
   const Sidebar = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
@@ -108,69 +142,67 @@ export function AppLayout({ children, company, disableAssistant }: AppLayoutProp
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(item => {
-          // Regras de active:
-          // — itens highlight (Novo Contrato, Novo Termo) nunca ficam ativos por startsWith
-          // — /dashboard: só ativo na rota exata
-          // — /patients: não pode ativar /patient-terms (startsWith daria false positive)
-          // — demais: startsWith cobre listagem + detalhe + sub-rotas
-          let active = false;
-          if (!item.highlight) {
-            if (item.href === '/dashboard') {
-              active = pathname === '/dashboard';
-            } else if (item.href === '/patients') {
-              // Usar regex para não capturar /patient-terms
-              active = pathname === '/patients' || /^\/patients\//.test(pathname);
-            } else {
-              active = pathname === item.href || pathname.startsWith(item.href + '/');
-            }
-          }
+      {/* Nav por grupos */}
+      <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-1">
+        {navGroups.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? 'pt-3' : ''}>
+            {group.title && (
+              <div className="text-2xs font-semibold text-white/30 uppercase tracking-widest px-3 mb-1.5">
+                {group.title}
+              </div>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map(item => {
+                const active = isActive(item.href, pathname, item.highlight);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={clsx(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+                      item.highlight && !item.secondary
+                        ? 'bg-gold-500 hover:bg-gold-400 text-white shadow-sm mt-2'
+                        : item.highlight && item.secondary
+                        ? 'bg-emerald-700 hover:bg-emerald-600 text-white/95 shadow-sm mt-1'
+                        : active
+                        ? 'bg-white/15 text-white'
+                        : 'text-white/60 hover:text-white hover:bg-white/8'
+                    )}
+                  >
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
-                item.highlight && !item.secondary
-                  ? 'bg-gold-500 hover:bg-gold-400 text-white shadow-sm mt-2'
-                  : item.highlight && item.secondary
-                  ? 'bg-white/10 hover:bg-white/20 text-white/90 border border-white/20 mt-1'
-                  : active
-                  ? 'bg-white/15 text-white'
-                  : 'text-white/60 hover:text-white hover:bg-white/8'
-              )}
-            >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              {item.label}
-            </Link>
-          );
-        })}
-
-        <div className="pt-4 pb-1">
-          <div className="text-2xs font-semibold text-white/30 uppercase tracking-widest px-3 mb-2">
+        {/* Configurações */}
+        <div className="pt-3 border-t border-white/10 mt-2">
+          <div className="text-2xs font-semibold text-white/30 uppercase tracking-widest px-3 mb-1.5">
             Configurações
           </div>
-          {settingsItems.map(item => {
-            const active = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
-                  active ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white hover:bg-white/8'
-                )}
-              >
-                <item.icon className="w-4 h-4 flex-shrink-0" />
-                {item.label}
-              </Link>
-            );
-          })}
+          <div className="space-y-0.5">
+            {settingsItems.map(item => {
+              const active = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={clsx(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                    active ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white hover:bg-white/8'
+                  )}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </nav>
 
@@ -188,12 +220,12 @@ export function AppLayout({ children, company, disableAssistant }: AppLayoutProp
 
   return (
     <div className="min-h-screen flex bg-slate-50">
-      {/* ── Sidebar Desktop ── */}
+      {/* Sidebar Desktop */}
       <aside className="hidden lg:flex w-60 flex-col bg-gradient-brand fixed inset-y-0 left-0 z-30">
         <Sidebar />
       </aside>
 
-      {/* ── Mobile overlay (drawer) ── */}
+      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div
@@ -213,7 +245,7 @@ export function AppLayout({ children, company, disableAssistant }: AppLayoutProp
         </div>
       )}
 
-      {/* ── Área de conteúdo ── */}
+      {/* Conteúdo */}
       <div className="lg:pl-60 flex-1 flex flex-col min-h-screen">
         {/* Header mobile */}
         <header className="lg:hidden sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
@@ -235,12 +267,7 @@ export function AppLayout({ children, company, disableAssistant }: AppLayoutProp
         </main>
       </div>
 
-      {/* ── Assistente flutuante global ──────────────────────────────────────
-          Renderizado em todas as telas autenticadas, exceto quando a página
-          filha já fornece seu próprio AssistantChat contextualizado
-          (ex: Novo Contrato usa disableAssistant=true e renderiza o próprio).
-          Garante exatamente 1 botão flutuante em qualquer tela.
-      ── */}
+      {/* Assistente flutuante global */}
       {!disableAssistant && (
         <AssistantChat pageContext={pageContext} />
       )}
