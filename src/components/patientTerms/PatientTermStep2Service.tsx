@@ -390,10 +390,18 @@ export function PatientTermStep2Service({ data, company, onChange, onBack, onNex
             <input type="date"
               value={servico.data_inicio_atendimento}
               min={todayISO()}
+              onInput={e => {
+                // Bloquear imediatamente se o ano tiver mais de 4 dígitos
+                const input = e.currentTarget;
+                const v = input.value;
+                const yearPart = v.split('-')[0];
+                if (yearPart && yearPart.length > 4) {
+                  input.value = servico.data_inicio_atendimento || '';
+                }
+              }}
               onChange={e => {
                 const v = e.target.value;
                 if (!isValidISODateYear(v)) return;
-                // Bloquear ano anterior ao ano atual (além de data anterior a hoje)
                 if (v) {
                   const year = Number(v.split('-')[0]);
                   if (year < new Date().getFullYear()) return;
@@ -424,6 +432,14 @@ export function PatientTermStep2Service({ data, company, onChange, onBack, onNex
               <input type="date"
                 value={servico.data_fim_atendimento}
                 min={servico.data_inicio_atendimento || todayISO()}
+                onInput={e => {
+                  const input = e.currentTarget;
+                  const v = input.value;
+                  const yearPart = v.split('-')[0];
+                  if (yearPart && yearPart.length > 4) {
+                    input.value = servico.data_fim_atendimento || '';
+                  }
+                }}
                 onChange={e => {
                   const v = e.target.value;
                   if (!isValidISODateYear(v)) return;

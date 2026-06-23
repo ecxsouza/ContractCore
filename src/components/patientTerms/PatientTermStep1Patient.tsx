@@ -7,8 +7,8 @@
 // NÃO inclui campos clínicos.
 // ================================================================
 
-import { useEffect } from 'react';
-import { ChevronRight, User, Users, AlertTriangle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ChevronRight, ChevronDown, User, Users, AlertTriangle } from 'lucide-react';
 import { CheckCircle, XCircle } from 'lucide-react';
 import type {
   PatientTermFormData,
@@ -96,6 +96,29 @@ const GRAUS_PARENTESCO: { value: PatientResponsibleKinship; label: string }[] = 
   { value: 'conjuge', label: 'Cônjuge'    },
   { value: 'outro',   label: 'Outro'      },
 ];
+
+// ── Hook: busca pacientes cadastrados da empresa (mesmo padrão do Step1Provider) ──
+function useExistingPatients() {
+  const [patients, setPatients] = useState<{
+    id: string; nome_completo: string; cpf?: string; rg?: string;
+    data_nascimento?: string; email?: string; telefone?: string;
+    cep?: string; logradouro?: string; numero?: string; complemento?: string;
+    bairro?: string; cidade?: string; uf?: string;
+    is_menor?: boolean; observacao_administrativa?: string;
+  }[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/patients')
+      .then(r => r.ok ? r.json() : { patients: [] })
+      .then(d => setPatients(d.patients || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { patients, loading };
+}
 
 // ── Bloco de endereço atômico ─────────────────────────────────────
 interface AddressBlockProps {
@@ -276,18 +299,54 @@ interface Step1Props {
 
 export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) {
   useScrollTop();
+
+  // ── Seleção de paciente existente (padrão Step1Provider) ──────────
+  const { patients: existingPatients } = useExistingPatients();
+  const [showPatientSelect, setShowPatientSelect] = useState(false);
+
+  // Desestruturar data para uso no JSX e funções
   const { paciente, responsavel_legal, responsavel_financeiro, mesmo_responsavel } = data;
 
+  function applyExistingPatient(p: typeof existingPatients[number]) {
+    const dob = p.data_nascimento || '';
+    onChange({
+      paciente: {
+        ...paciente,
+        nome_completo:            p.nome_completo              || '',
+        cpf:                      p.cpf                        || '',
+        rg:                       p.rg                         || '',
+        data_nascimento:          dob,
+        email:                    p.email                      || '',
+        telefone:                 p.telefone                   || '',
+        cep:                      p.cep                        || '',
+        logradouro:               p.logradouro                 || '',
+        numero:                   p.numero                     || '',
+        complemento:              p.complemento                || '',
+        bairro:                   p.bairro                     || '',
+        cidade:                   p.cidade                     || '',
+        uf:                       p.uf                         || '',
+        observacao_administrativa: p.observacao_administrativa  || '',
+        is_menor: dob ? isMenorDeIdade(dob) : (p.is_menor ?? false),
+      },
+    });
+    setShowPatientSelect(false);
+    toast.success(`Dados de ${p.nome_completo} carregados!`);
+  }
+
   function updatePaciente(field: keyof PatientTermFormPaciente, value: string | boolean) {
+    const { paciente } = data;
     onChange({ paciente: { ...paciente, [field]: value } });
   }
   function updateRespLegal(field: keyof PatientTermFormResponsavel, value: string | boolean) {
+    const { responsavel_legal } = data;
     onChange({ responsavel_legal: { ...responsavel_legal, [field]: value } });
   }
   function updateRespFin(field: keyof PatientTermFormResponsavel, value: string | boolean) {
+    const { responsavel_financeiro } = data;
     onChange({ responsavel_financeiro: { ...responsavel_financeiro, [field]: value } });
   }
   function updatePacienteAddr(updates: Partial<PatientTermFormPaciente>) {
+    const { paciente } = data;
     onChange({ paciente: { ...paciente, ...updates } });
   }
 
@@ -347,7 +406,58 @@ export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) 
 
   return (
     <div className="space-y-6">
-      {/* ── Dados do paciente ── */}
+
+      {/* ── Selecionar paciente já cadastrado (padrão Step1Provider) ── */}
+      {existingPatients.length > 0 && (
+        <div
+          className="rounded-2xl p-4 border transition-all"
+          style={{
+            background:   'linear-gradient(135deg, #eef8ff, #f5fbff)',
+            borderColor:  '#7db7e8',
+            boxShadow:    '0 8px 24px rgba(30, 96, 145, 0.08)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setShowPatientSelect(!showPatientSelect)}
+            className="flex items-center gap-3 w-full text-left"
+          >
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #2f7fc4, #1e6091)' }}>
+              <Users className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold" style={{ color: '#1e6091' }}>Pacientes cadastrados</p>
+              <p className="text-xs text-slate-500">Selecione um paciente já cadastrado para preencher automaticamente os dados abaixo.</p>
+            </div>
+            <ChevronDown className={`w-4 h-4 transition-transform ${showPatientSelect ? 'rotate-180' : ''}`}
+              style={{ color: '#2f7fc4' }} />
+          </button>
+
+          {showPatientSelect && (
+            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+              {existingPatients.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => applyExistingPatient(p)}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-brand-300 hover:bg-brand-50 transition-all text-left"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-brand-900 truncate">{p.nome_completo}</p>
+                    <p className="text-xs text-slate-500">
+                      {p.is_menor ? 'Menor de idade' : 'Adulto'}
+                      {p.cpf ? ` · CPF: ${p.cpf}` : ''}
+                      {p.email ? ` · ${p.email}` : ''}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="cc-card p-6">
         <div className="section-title">Dados do Paciente</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
