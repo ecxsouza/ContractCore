@@ -27,9 +27,21 @@ const FORMAS_PAGAMENTO = [
 ];
 
 const NOTA_FISCAL_OPTS: { val: PatientTermNotaFiscal; label: string; desc: string }[] = [
-  { val: 'obrigatorio',       label: 'Obrigatório',        desc: 'Emissão de recibo/nota para cada pagamento realizado.'         },
-  { val: 'quando_solicitado', label: 'Quando solicitado',  desc: 'Emitir apenas mediante pedido expresso do paciente.'           },
-  { val: 'nao_emite',         label: 'Não emite',          desc: 'Não aplicável conforme legislação vigente para este prestador.' },
+  {
+    val: 'obrigatorio',
+    label: 'Emitir a cada pagamento',
+    desc: 'Será emitido recibo, nota fiscal ou documento fiscal equivalente a cada pagamento realizado, conforme o enquadramento fiscal aplicável à clínica ou ao profissional responsável.',
+  },
+  {
+    val: 'quando_solicitado',
+    label: 'Emitir quando solicitado',
+    desc: 'O documento será emitido mediante solicitação do paciente ou responsável financeiro, observadas as regras fiscais aplicáveis e os dados necessários para emissão.',
+  },
+  {
+    val: 'nao_emite',
+    label: 'Não aplicável neste caso',
+    desc: 'Não haverá emissão automática por este fluxo quando a prestação, o responsável pela emissão ou o enquadramento fiscal exigirem procedimento próprio, externo ao termo. Quando aplicável, a clínica orientará o paciente ou responsável financeiro sobre o canal correto para solicitação.',
+  },
 ];
 
 const REGRAS_FIELDS = [
@@ -143,7 +155,7 @@ export function PatientTermStep3Financial({ data, onChange, onBack, onNext }: St
 
       {/* Nota Fiscal — botões como no contrato */}
       <div className="cc-card p-6">
-        <div className="section-title">Recibo / Nota Fiscal</div>
+        <div className="section-title">Recibo / Documento fiscal</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {NOTA_FISCAL_OPTS.map(({ val, label, desc }) => (
             <button key={val} type="button" onClick={() => updateFin('emite_nota_fiscal', val)}

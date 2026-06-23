@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Briefcase } from 'lucide-react';
 import type { PatientTermFormData, PatientTermType, PatientTermModalidade } from '@/lib/patientTerms/types';
 import { PATIENT_TERM_TYPE_LABELS, PATIENT_TERM_MODALIDADE_LABELS } from '@/lib/constants';
+import type { Company } from '@/types';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 
@@ -53,11 +54,16 @@ const AREAS = [
   { value: 'outro',           label: 'Outro' },
 ];
 
+// Mesmo padrão do Step2Service do contrato — com placeholder de detalhamento
 const FREQUENCIAS = [
-  { value: 'semanal',                    label: 'Semanal'                 },
-  { value: 'quinzenal',                  label: 'Quinzenal'               },
-  { value: 'mensal',                     label: 'Mensal'                  },
-  { value: 'conforme agenda pactuada',   label: 'Conforme agenda pactuada'},
+  { value: 'semanal',                  label: 'Semanal',
+    placeholder: 'Ex: Uma vez por semana, em dia e horário fixo combinado entre as partes.' },
+  { value: 'quinzenal',                label: 'Quinzenal',
+    placeholder: 'Ex: A cada 15 dias, nas semanas ímpares do mês, em horário a combinar.' },
+  { value: 'mensal',                   label: 'Mensal',
+    placeholder: 'Ex: Uma vez por mês, a ser definido até o último dia útil do mês anterior.' },
+  { value: 'conforme agenda pactuada', label: 'Conforme agenda pactuada',
+    placeholder: 'Ex: Os atendimentos serão realizados conforme agenda combinada entre as partes, registrada por escrito (WhatsApp ou e-mail), com aviso prévio de 48 horas para alterações.' },
 ];
 
 const DURACOES = [
@@ -70,18 +76,44 @@ const DURACOES = [
 
 interface Step2Props {
   data:     PatientTermFormData;
+  company:  Company;
   onChange: (partial: Partial<PatientTermFormData>) => void;
   onBack:   () => void;
   onNext:   () => void;
 }
 
-export function PatientTermStep2Service({ data, onChange, onBack, onNext }: Step2Props) {
+export function PatientTermStep2Service({ data, company, onChange, onBack, onNext }: Step2Props) {
   useScrollTop();
   const { servico } = data;
 
+  // Endereço da empresa — mesmo formato do Step2Service do contrato
+  const localEmpresa = [
+    company.logradouro, company.numero,
+    company.bairro, company.cep,
+    company.cidade, company.uf,
+  ].filter(Boolean).join(', ') ||
+  `${company.cidade || 'Cidade'} — ${company.uf || 'UF'}`;
+
+  // Preencher local_atendimento com dados da empresa se ainda estiver vazio
+  useEffect(() => {
+    if (!servico.local_atendimento && localEmpresa) {
+      onChange({ servico: { ...servico, local_atendimento: localEmpresa } });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Estado da área personalizada (quando área = 'outro')
+  const [areaOutroTexto, setAreaOutroTexto] = useState(
+    servico.area_servico?.startsWith('outro — ')
+      ? servico.area_servico.replace('outro — ', '')
+      : ''
+  );
+  const areaEhOutro = servico.area_servico === 'outro' ||
+    servico.area_servico?.startsWith('outro — ');
+
   // Estado local para duração personalizada
   const [duracaoPersonalizada, setDuracaoPersonalizada] = useState(
-    !DURACOES.some(d => d.value === servico.duracao_sessao && d.value !== 'outro')
+    !DURACOES.slice(0,-1).some(d => d.value === servico.duracao_sessao)
       ? servico.duracao_sessao
       : ''
   );
@@ -170,12 +202,32 @@ export function PatientTermStep2Service({ data, onChange, onBack, onNext }: Step
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="cc-label">Área do serviço <span className="text-red-500">*</span></label>
-            <select value={servico.area_servico}
-              onChange={e => updateServico('area_servico', e.target.value)}
+            <select
+              value={areaEhOutro ? 'outro' : servico.area_servico}
+              onChange={e => {
+                const val = e.target.value;
+                if (val === 'outro') {
+                  updateServico('area_servico', areaOutroTexto ? `outro — ${areaOutroTexto}` : 'outro');
+                } else {
+                  setAreaOutroTexto('');
+                  updateServico('area_servico', val);
+                }
+              }}
               className="cc-input w-full">
               <option value="">Selecione...</option>
               {AREAS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
+            {areaEhOutro && (
+              <input type="text" className="cc-input w-full mt-2"
+                value={areaOutroTexto}
+                onChange={e => {
+                  setAreaOutroTexto(e.target.value);
+                  updateServico('area_servico', e.target.value.trim()
+                    ? `outro — ${e.target.value.trim()}`
+                    : 'outro');
+                }}
+                placeholder="Descreva a área do serviço..." />
+            )}
           </div>
 
           <div>
@@ -207,7 +259,7 @@ export function PatientTermStep2Service({ data, onChange, onBack, onNext }: Step
             <label className="cc-label">Local de atendimento</label>
             <input type="text" value={servico.local_atendimento}
               onChange={e => updateServico('local_atendimento', e.target.value)}
-              placeholder="Ex: Rua das Flores, 123 — Sala 5, Clínica Bem Estar"
+              placeholder={`Ex: ${localEmpresa}`}
               className="cc-input w-full" />
           </div>
 
@@ -250,8 +302,21 @@ export function PatientTermStep2Service({ data, onChange, onBack, onNext }: Step
           </div>
           {freqEhAgenda && (
             <div className="mt-3">
-              <label className="cc-label mb-0">Detalhamento da agenda</label>
-              <textarea className="cc-textarea mt-1" rows={2}
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="cc-label mb-0">Detalhamento da agenda</label>
+                {!agendaDetalhe && (
+                  <button type="button"
+                    onClick={() => {
+                      const sugestao = FREQUENCIAS.find(f => f.value === 'conforme agenda pactuada')?.placeholder.replace(/^Ex: /, '') || '';
+                      setAgendaDetalhe(sugestao);
+                      updateServico('frequencia', `conforme agenda pactuada — ${sugestao}`);
+                    }}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-brand-700 hover:bg-brand-600 text-white text-xs font-semibold rounded-lg transition-all">
+                    ✦ Usar sugestão
+                  </button>
+                )}
+              </div>
+              <textarea className="cc-textarea mt-1" rows={3}
                 value={agendaDetalhe}
                 onChange={e => {
                   const v = e.target.value;
@@ -261,7 +326,7 @@ export function PatientTermStep2Service({ data, onChange, onBack, onNext }: Step
                     : 'conforme agenda pactuada';
                   updateServico('frequencia', full);
                 }}
-                placeholder="Ex: Terças e quintas, às 14h, sujeito a reagendamento por acordo entre as partes." />
+                placeholder={FREQUENCIAS.find(f => f.value === 'conforme agenda pactuada')?.placeholder || ''} />
             </div>
           )}
         </div>

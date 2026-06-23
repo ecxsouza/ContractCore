@@ -182,3 +182,51 @@ export async function PATCH(
 
   return NextResponse.json({ term: termAtualizado });
 }
+// ── DELETE /api/patient-terms/[id] ───────────────────────────────
+// Remove o termo e seus audit_logs (CASCADE via FK).
+// Não usa service role. company_id vem da sessão.
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
+  const { data: company } = await supabase
+    .from('companies').select('id').eq('user_id', user.id).single();
+  if (!company) return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
+
+  const { id } = params;
+
+  // Confirmar que o termo pertence à empresa
+  const { data: existing } = await supabase
+    .from('patient_terms')
+    .select('id')
+    .eq('id', id)
+    .eq('company_id', company.id)
+    .single();
+
+  if (!existing) {
+    return NextResponse.json(
+      { error: 'Termo não encontrado ou sem permissão de acesso.' },
+      { status: 404 }
+    );
+  }
+
+  // audit_logs deletados por CASCADE (ON DELETE CASCADE na FK ptaudit_term_company_fk)
+  const { error: delError } = await supabase
+    .from('patient_terms')
+    .delete()
+    .eq('id', id)
+    .eq('company_id', company.id);
+
+  if (delError) {
+    return NextResponse.json(
+      { error: 'Não foi possível excluir o termo. Tente novamente.' },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true });
+}

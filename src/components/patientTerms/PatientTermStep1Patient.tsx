@@ -2,55 +2,86 @@
 
 // ================================================================
 // Step 1 — Paciente e Responsáveis
-// NÃO inclui campos clínicos (diagnóstico, CID, evolução, etc.)
-// Campo livre: somente observacao_administrativa (administrativo)
+// Validações de CPF, e-mail e WhatsApp idênticas ao Step1Provider.
+// CEP atômico (Partial). Data sem dígitos de ano > 4.
+// NÃO inclui campos clínicos.
 // ================================================================
 
 import { useEffect } from 'react';
 import { ChevronRight, User, Users, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import type {
   PatientTermFormData,
   PatientTermFormPaciente,
   PatientTermFormResponsavel,
   PatientResponsibleKinship,
 } from '@/lib/patientTerms/types';
-import { maskCPF, maskPhone, maskCEP, maskRG, capitalizeName } from '@/lib/masks';
+import {
+  maskCPF, maskPhone, maskCEP, maskRG, capitalizeName,
+  validateCPF, onlyDigits,
+} from '@/lib/masks';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
+
+// ── Helpers ──────────────────────────────────────────────────────
 
 function useScrollTop() {
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, []);
 }
 
-// Calcula se uma data ISO (YYYY-MM-DD) corresponde a menor de 18 anos.
-// Não usa new Date(dateStr) para evitar deslocamento de fuso horário.
+// Mesmo padrão do Step1Provider
+function isValidEmail(e: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
+
+// Mesma lógica do Step1Provider: ao menos 10 dígitos
+function isValidPhone(v: string): boolean {
+  return onlyDigits(v).length >= 10;
+}
+
+// Calcula menor de idade sem new Date(str) para evitar fuso
 function isMenorDeIdade(dateStr: string): boolean {
   const [year, month, day] = dateStr.split('-').map(Number);
   if (!year || !month || !day) return false;
-
   const today        = new Date();
   let   age          = today.getFullYear() - year;
   const currentMonth = today.getMonth() + 1;
   const currentDay   = today.getDate();
-
-  if (currentMonth < month || (currentMonth === month && currentDay < day)) {
-    age--;
-  }
+  if (currentMonth < month || (currentMonth === month && currentDay < day)) age--;
   return age < 18;
 }
 
-// Data máxima = hoje (sem datas futuras para nascimento)
 function todayISO(): string {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// Valida que o ano tem exatamente 4 dígitos — evita anos com 5+ dígitos
-// que alguns navegadores permitem digitar mesmo com max= definido.
 function isValidISODateYear(value: string): boolean {
   if (!value) return true;
   const [year] = value.split('-');
   return /^\d{4}$/.test(year);
+}
+
+// Ícone de status de campo — igual ao FieldStatus do Step1Provider
+function FieldStatus({ valid, touched }: { valid: boolean; touched: boolean }) {
+  if (!touched) return null;
+  return valid
+    ? <CheckCircle className="w-4 h-4 text-emerald-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+    : <XCircle    className="w-4 h-4 text-red-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />;
+}
+
+// CEP atômico
+type AddressData = Pick<PatientTermFormPaciente,
+  'cep'|'logradouro'|'numero'|'complemento'|'bairro'|'cidade'|'uf'>;
+
+async function fetchCEP(cep: string) {
+  const digits = cep.replace(/\D/g,'');
+  if (digits.length !== 8) return null;
+  try {
+    const r = await fetch(`/api/cep?cep=${digits}`);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
 }
 
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
@@ -66,24 +97,7 @@ const GRAUS_PARENTESCO: { value: PatientResponsibleKinship; label: string }[] = 
   { value: 'outro',   label: 'Outro'      },
 ];
 
-// Busca CEP via ViaCEP — mesmo padrão do Step1Provider
-async function fetchCEP(cep: string) {
-  const digits = cep.replace(/\D/g, '');
-  if (digits.length !== 8) return null;
-  try {
-    const r = await fetch(`/api/cep?cep=${digits}`);
-    if (!r.ok) return null;
-    return await r.json();
-  } catch { return null; }
-}
-
-// ── Bloco de endereço reutilizável ────────────────────────────────
-// onChange aceita Partial para permitir atualização atômica de vários campos
-// de uma vez (especialmente ao preencher via CEP), evitando perda de dados
-// por múltiplas chamadas sobre o mesmo snapshot de estado.
-type AddressData = Pick<PatientTermFormPaciente,
-  'cep' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf'>;
-
+// ── Bloco de endereço atômico ─────────────────────────────────────
 interface AddressBlockProps {
   data:     AddressData;
   onChange: (updates: Partial<AddressData>) => void;
@@ -93,7 +107,6 @@ function AddressBlock({ data, onChange }: AddressBlockProps) {
   async function handleCepBlur() {
     const r = await fetchCEP(data.cep);
     if (r?.logradouro) {
-      // Atualização atômica: todos os campos do CEP em uma única chamada
       onChange({
         logradouro: r.logradouro  || '',
         bairro:     r.bairro      || '',
@@ -107,21 +120,23 @@ function AddressBlock({ data, onChange }: AddressBlockProps) {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <label className="cc-label">CEP</label>
-        <input
-          type="text" maxLength={9}
-          value={maskCEP(data.cep)}
-          onChange={e => onChange({ cep: e.target.value })}
-          onBlur={handleCepBlur}
-          placeholder="00000-000"
-          className="cc-input w-full"
-        />
+        <div className="relative">
+          <input type="text" maxLength={9}
+            value={maskCEP(data.cep)}
+            onChange={e => onChange({ cep: e.target.value })}
+            onBlur={handleCepBlur}
+            placeholder="00000-000"
+            className="cc-input w-full pr-8" />
+          <FieldStatus
+            valid={onlyDigits(data.cep).length === 8}
+            touched={data.cep.length > 0} />
+        </div>
       </div>
       <div>
         <label className="cc-label">Logradouro</label>
         <input type="text" value={data.logradouro}
           onChange={e => onChange({ logradouro: e.target.value })}
-          placeholder="Rua, Avenida..."
-          className="cc-input w-full" />
+          placeholder="Rua, Avenida..." className="cc-input w-full" />
       </div>
       <div>
         <label className="cc-label">Número</label>
@@ -160,50 +175,49 @@ function AddressBlock({ data, onChange }: AddressBlockProps) {
   );
 }
 
-// ── Bloco do responsável ──────────────────────────────────────────
+// ── Bloco de responsável com validações ──────────────────────────
 interface ResponsavelBlockProps {
   titulo:  string;
   data:    PatientTermFormResponsavel;
   onChange: (field: keyof PatientTermFormResponsavel, value: string | boolean) => void;
   showLegalBadge?: boolean;
   showFinBadge?:   boolean;
-  required?: boolean;
 }
 
-function ResponsavelBlock({ titulo, data, onChange, showLegalBadge, showFinBadge, required }: ResponsavelBlockProps) {
-  const faltaNome = required && !data.nome_completo.trim();
-  const faltaCPF  = required && !data.cpf.trim();
+function ResponsavelBlock({ titulo, data, onChange, showLegalBadge, showFinBadge }: ResponsavelBlockProps) {
+  const cpfDigits = onlyDigits(data.cpf);
+  const cpfValid  = cpfDigits.length === 0 || validateCPF(cpfDigits);
 
   return (
     <div className="cc-card p-5 border-brand-100 bg-blue-50/30">
       <div className="flex items-center gap-2 mb-4">
         <Users className="w-4 h-4 text-brand-600 flex-shrink-0" />
         <h3 className="font-semibold text-sm text-brand-900">{titulo}</h3>
-        {showLegalBadge && (
-          <span className="text-2xs px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 font-medium">Autoriza atendimento</span>
-        )}
-        {showFinBadge && (
-          <span className="text-2xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Responsável financeiro</span>
-        )}
+        {showLegalBadge && <span className="text-2xs px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 font-medium">Autoriza atendimento</span>}
+        {showFinBadge   && <span className="text-2xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Responsável financeiro</span>}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="sm:col-span-2">
-          <label className="cc-label">
-            Nome completo {required && <span className="text-red-500">*</span>}
-          </label>
+          <label className="cc-label">Nome completo <span className="text-red-500">*</span></label>
           <input type="text" value={data.nome_completo}
             onChange={e => onChange('nome_completo', capitalizeName(e.target.value))}
             placeholder="Nome do responsável"
-            className={clsx('cc-input w-full', faltaNome && 'border-red-300')} />
+            className={clsx('cc-input w-full', !data.nome_completo.trim() && 'border-red-300')} />
         </div>
         <div>
-          <label className="cc-label">
-            CPF {required && <span className="text-red-500">*</span>}
-          </label>
-          <input type="text" maxLength={14} value={maskCPF(data.cpf)}
-            onChange={e => onChange('cpf', e.target.value)}
-            placeholder="000.000.000-00"
-            className={clsx('cc-input w-full', faltaCPF && 'border-red-300')} />
+          <label className="cc-label">CPF <span className="text-red-500">*</span></label>
+          <div className="relative">
+            <input type="text" maxLength={14} value={maskCPF(data.cpf)}
+              onChange={e => onChange('cpf', e.target.value)}
+              placeholder="000.000.000-00"
+              className={clsx('cc-input w-full pr-8', !data.cpf.trim() && 'border-red-300')} />
+            <FieldStatus
+              valid={cpfDigits.length === 11 && validateCPF(cpfDigits)}
+              touched={cpfDigits.length > 0} />
+          </div>
+          {cpfDigits.length === 11 && !cpfValid && (
+            <p className="text-red-500 text-xs mt-1">CPF inválido.</p>
+          )}
         </div>
         <div>
           <label className="cc-label">RG</label>
@@ -213,15 +227,31 @@ function ResponsavelBlock({ titulo, data, onChange, showLegalBadge, showFinBadge
         </div>
         <div>
           <label className="cc-label">WhatsApp</label>
-          <input type="text" maxLength={15} value={maskPhone(data.telefone)}
-            onChange={e => onChange('telefone', e.target.value)}
-            placeholder="(00) 00000-0000" className="cc-input w-full" />
+          <div className="relative">
+            <input type="text" maxLength={15} value={maskPhone(data.telefone)}
+              onChange={e => onChange('telefone', e.target.value)}
+              placeholder="(00) 00000-0000" className="cc-input w-full pr-8" />
+            <FieldStatus
+              valid={isValidPhone(data.telefone)}
+              touched={onlyDigits(data.telefone).length > 0} />
+          </div>
+          {onlyDigits(data.telefone).length > 0 && !isValidPhone(data.telefone) && (
+            <p className="text-red-500 text-xs mt-1">Número incompleto.</p>
+          )}
         </div>
         <div>
           <label className="cc-label">E-mail</label>
-          <input type="email" value={data.email}
-            onChange={e => onChange('email', e.target.value)}
-            placeholder="email@exemplo.com" className="cc-input w-full" />
+          <div className="relative">
+            <input type="email" value={data.email}
+              onChange={e => onChange('email', e.target.value)}
+              placeholder="email@exemplo.com" className="cc-input w-full pr-8" />
+            <FieldStatus
+              valid={isValidEmail(data.email)}
+              touched={data.email.length > 0} />
+          </div>
+          {data.email.length > 0 && !isValidEmail(data.email) && (
+            <p className="text-red-500 text-xs mt-1">E-mail inválido.</p>
+          )}
         </div>
         <div className="sm:col-span-2">
           <label className="cc-label">Grau de parentesco</label>
@@ -229,9 +259,7 @@ function ResponsavelBlock({ titulo, data, onChange, showLegalBadge, showFinBadge
             onChange={e => onChange('grau_parentesco', e.target.value)}
             className="cc-input w-full">
             <option value="">Selecione...</option>
-            {GRAUS_PARENTESCO.map(g => (
-              <option key={g.value} value={g.value}>{g.label}</option>
-            ))}
+            {GRAUS_PARENTESCO.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
           </select>
         </div>
       </div>
@@ -248,23 +276,17 @@ interface Step1Props {
 
 export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) {
   useScrollTop();
-
   const { paciente, responsavel_legal, responsavel_financeiro, mesmo_responsavel } = data;
 
   function updatePaciente(field: keyof PatientTermFormPaciente, value: string | boolean) {
     onChange({ paciente: { ...paciente, [field]: value } });
   }
-
   function updateRespLegal(field: keyof PatientTermFormResponsavel, value: string | boolean) {
     onChange({ responsavel_legal: { ...responsavel_legal, [field]: value } });
   }
-
   function updateRespFin(field: keyof PatientTermFormResponsavel, value: string | boolean) {
     onChange({ responsavel_financeiro: { ...responsavel_financeiro, [field]: value } });
   }
-
-  // Merge atômico de campos de endereço — aceita Partial para CEP preencher
-  // logradouro + bairro + cidade + uf em uma única chamada de estado.
   function updatePacienteAddr(updates: Partial<PatientTermFormPaciente>) {
     onChange({ paciente: { ...paciente, ...updates } });
   }
@@ -273,73 +295,79 @@ export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) 
     if (!paciente.nome_completo.trim()) {
       toast.error('Nome completo do paciente é obrigatório'); return;
     }
+    const cpfDigits = onlyDigits(paciente.cpf);
+    if (cpfDigits.length > 0 && !validateCPF(cpfDigits)) {
+      toast.error('CPF do paciente inválido'); return;
+    }
+    if (paciente.email && !isValidEmail(paciente.email)) {
+      toast.error('E-mail do paciente inválido'); return;
+    }
     if (paciente.is_menor) {
       if (!responsavel_legal.nome_completo.trim()) {
         toast.error('Nome do responsável legal é obrigatório para menor de idade'); return;
       }
-      if (!responsavel_legal.cpf.trim()) {
-        toast.error('CPF do responsável legal é obrigatório para menor de idade'); return;
-      }
+      const rlCpf = onlyDigits(responsavel_legal.cpf);
+      if (!rlCpf) { toast.error('CPF do responsável legal é obrigatório'); return; }
+      if (!validateCPF(rlCpf)) { toast.error('CPF do responsável legal inválido'); return; }
       if (!mesmo_responsavel) {
         if (!responsavel_financeiro.nome_completo.trim()) {
           toast.error('Nome do responsável financeiro é obrigatório'); return;
         }
-        if (!responsavel_financeiro.cpf.trim()) {
-          toast.error('CPF do responsável financeiro é obrigatório'); return;
-        }
+        const rfCpf = onlyDigits(responsavel_financeiro.cpf);
+        if (!rfCpf) { toast.error('CPF do responsável financeiro é obrigatório'); return; }
+        if (!validateCPF(rfCpf)) { toast.error('CPF do responsável financeiro inválido'); return; }
       }
     }
     onNext();
   }
+
+  const pacienteCpfDigits = onlyDigits(paciente.cpf);
 
   return (
     <div className="space-y-6">
       {/* ── Dados do paciente ── */}
       <div className="cc-card p-6">
         <div className="section-title">Dados do Paciente</div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label className="cc-label">Nome completo <span className="text-red-500">*</span></label>
-            <input
-              type="text"
-              value={paciente.nome_completo}
+            <input type="text" value={paciente.nome_completo}
               onChange={e => updatePaciente('nome_completo', capitalizeName(e.target.value))}
               placeholder="Nome completo do paciente"
-              className={clsx('cc-input w-full', !paciente.nome_completo.trim() && 'border-red-300')}
-            />
+              className={clsx('cc-input w-full', !paciente.nome_completo.trim() && 'border-red-300')} />
           </div>
 
           <div>
             <label className="cc-label">CPF</label>
-            <input type="text" maxLength={14}
-              value={maskCPF(paciente.cpf)}
-              onChange={e => updatePaciente('cpf', e.target.value)}
-              placeholder="000.000.000-00"
-              className="cc-input w-full" />
+            <div className="relative">
+              <input type="text" maxLength={14} value={maskCPF(paciente.cpf)}
+                onChange={e => updatePaciente('cpf', e.target.value)}
+                placeholder="000.000.000-00"
+                className="cc-input w-full pr-8" />
+              <FieldStatus
+                valid={pacienteCpfDigits.length === 11 && validateCPF(pacienteCpfDigits)}
+                touched={pacienteCpfDigits.length > 0} />
+            </div>
+            {pacienteCpfDigits.length === 11 && !validateCPF(pacienteCpfDigits) && (
+              <p className="text-red-500 text-xs mt-1">CPF inválido.</p>
+            )}
           </div>
 
           <div>
             <label className="cc-label">RG</label>
-            <input type="text"
-              value={paciente.rg}
+            <input type="text" value={paciente.rg}
               onChange={e => updatePaciente('rg', maskRG(e.target.value))}
-              placeholder="RG"
-              className="cc-input w-full" />
+              placeholder="RG" className="cc-input w-full" />
           </div>
 
           <div>
             <label className="cc-label">Data de nascimento</label>
-            <input type="date"
-              value={paciente.data_nascimento}
+            <input type="date" value={paciente.data_nascimento}
               max={todayISO()}
               onChange={e => {
                 const dob = e.target.value;
-                // Bloquear ano com mais de 4 dígitos (alguns browsers permitem)
                 if (!isValidISODateYear(dob)) return;
-                // Bloquear data futura
                 if (dob && dob > todayISO()) return;
-                // Atualização atômica: data e is_menor no mesmo snapshot
                 onChange({
                   paciente: {
                     ...paciente,
@@ -353,28 +381,39 @@ export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) 
 
           <div>
             <label className="cc-label">WhatsApp</label>
-            <input type="text" maxLength={15}
-              value={maskPhone(paciente.telefone)}
-              onChange={e => updatePaciente('telefone', e.target.value)}
-              placeholder="(00) 00000-0000"
-              className="cc-input w-full" />
+            <div className="relative">
+              <input type="text" maxLength={15} value={maskPhone(paciente.telefone)}
+                onChange={e => updatePaciente('telefone', e.target.value)}
+                placeholder="(00) 00000-0000" className="cc-input w-full pr-8" />
+              <FieldStatus
+                valid={isValidPhone(paciente.telefone)}
+                touched={onlyDigits(paciente.telefone).length > 0} />
+            </div>
+            {onlyDigits(paciente.telefone).length > 0 && !isValidPhone(paciente.telefone) && (
+              <p className="text-red-500 text-xs mt-1">Número incompleto.</p>
+            )}
           </div>
 
           <div className="md:col-span-2">
             <label className="cc-label">E-mail</label>
-            <input type="email"
-              value={paciente.email}
-              onChange={e => updatePaciente('email', e.target.value)}
-              placeholder="email@exemplo.com"
-              className="cc-input w-full" />
+            <div className="relative">
+              <input type="email" value={paciente.email}
+                onChange={e => updatePaciente('email', e.target.value)}
+                placeholder="email@exemplo.com" className="cc-input w-full pr-8" />
+              <FieldStatus
+                valid={isValidEmail(paciente.email)}
+                touched={paciente.email.length > 0} />
+            </div>
+            {paciente.email.length > 0 && !isValidEmail(paciente.email) && (
+              <p className="text-red-500 text-xs mt-1">E-mail inválido.</p>
+            )}
           </div>
         </div>
 
-        {/* Toggle menor de idade */}
+        {/* Toggle menor */}
         <div className="mt-5 pt-4 border-t border-slate-100">
           <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox"
-              checked={paciente.is_menor}
+            <input type="checkbox" checked={paciente.is_menor}
               onChange={e => updatePaciente('is_menor', e.target.checked)}
               className="w-4 h-4 text-brand-600 rounded" />
             <div>
@@ -383,44 +422,17 @@ export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) 
             </div>
           </label>
         </div>
-
-        {/* Endereço */}
-        <div className="mt-5 pt-4 border-t border-slate-100">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Endereço</p>
-          <AddressBlock data={paciente} onChange={updatePacienteAddr} />
-        </div>
-
-        {/* Observação administrativa */}
-        <div className="mt-5 pt-4 border-t border-slate-100">
-          <label className="cc-label">Observação administrativa</label>
-          <textarea rows={2}
-            value={paciente.observacao_administrativa}
-            onChange={e => updatePaciente('observacao_administrativa', e.target.value)}
-            placeholder="Ex: prefere atendimento no turno da tarde, contato preferencial via WhatsApp..."
-            className="cc-textarea w-full" />
-          <p className="text-2xs text-amber-600 mt-1 flex items-center gap-1">
-            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-            Não registre diagnóstico, evolução, queixa clínica, conduta, CID, medicação ou informações de prontuário.
-          </p>
-        </div>
       </div>
 
-      {/* ── Responsável legal (somente para menor) ── */}
+      {/* ── Responsável legal (aparece antes do endereço, quando menor) ── */}
       {paciente.is_menor && (
         <div className="space-y-4">
-          <ResponsavelBlock
-            titulo="Responsável Legal"
-            data={responsavel_legal}
-            onChange={updateRespLegal}
-            showLegalBadge
-            required
-          />
+          <ResponsavelBlock titulo="Responsável Legal" data={responsavel_legal}
+            onChange={updateRespLegal} showLegalBadge />
 
-          {/* Mesmo responsável financeiro? */}
           <div className="cc-card p-4">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox"
-                checked={mesmo_responsavel}
+              <input type="checkbox" checked={mesmo_responsavel}
                 onChange={e => onChange({ mesmo_responsavel: e.target.checked })}
                 className="w-4 h-4 text-brand-600 rounded" />
               <div>
@@ -431,23 +443,36 @@ export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) 
           </div>
 
           {!mesmo_responsavel && (
-            <ResponsavelBlock
-              titulo="Responsável Financeiro"
-              data={responsavel_financeiro}
-              onChange={updateRespFin}
-              showFinBadge
-              required
-            />
+            <ResponsavelBlock titulo="Responsável Financeiro" data={responsavel_financeiro}
+              onChange={updateRespFin} showFinBadge />
           )}
         </div>
       )}
 
-      {/* ── Botão avançar ── */}
+      {/* ── Endereço ── */}
+      <div className="cc-card p-6">
+        <div className="section-title">Endereço</div>
+        <AddressBlock data={paciente} onChange={updatePacienteAddr} />
+      </div>
+
+      {/* ── Observação administrativa ── */}
+      <div className="cc-card p-6">
+        <label className="cc-label">Observação administrativa</label>
+        <textarea rows={2}
+          value={paciente.observacao_administrativa}
+          onChange={e => updatePaciente('observacao_administrativa', e.target.value)}
+          placeholder="Ex: prefere atendimento no turno da tarde, contato preferencial via WhatsApp..."
+          className="cc-textarea w-full" />
+        <p className="text-2xs text-amber-600 mt-1 flex items-center gap-1">
+          <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+          Não registre diagnóstico, evolução, queixa clínica, conduta, CID, medicação ou informações de prontuário.
+        </p>
+      </div>
+
       <div className="flex justify-end pt-2">
         <button type="button" onClick={handleNext}
           className="btn-primary flex items-center gap-2">
-          Avançar para Serviço
-          <ChevronRight className="w-4 h-4" />
+          Avançar para Serviço <ChevronRight className="w-4 h-4" />
         </button>
       </div>
     </div>

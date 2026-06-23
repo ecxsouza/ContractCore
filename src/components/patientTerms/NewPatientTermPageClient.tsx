@@ -246,6 +246,7 @@ export function NewPatientTermPageClient({
       {currentStep === 2 && (
         <PatientTermStep2Service
           data={form}
+          company={company}
           onChange={handleChange}
           onBack={() => goToStep(1)}
           onNext={() => goToStep(3)}
