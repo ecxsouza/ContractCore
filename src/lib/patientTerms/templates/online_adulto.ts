@@ -125,11 +125,11 @@ export function renderOnlineAdulto(ctx: TemplateContext): string {
     <p><strong>3.1.</strong> Valor por sessão: <strong>${brl(financeiro.valor_sessao)}</strong>.</p>
     <p><strong>3.2.</strong> Forma de pagamento: <strong>${esc(formasPgto)}</strong>.</p>
     <p><strong>3.3.</strong> Vencimento: ${esc(financeiro.vencimento_pagamento)}.</p>
-    <p><strong>3.4.</strong> Emissão de recibo/nota fiscal: ${esc(financeiro.emite_nota_fiscal === 'obrigatorio'
-      ? 'obrigatória para cada pagamento realizado'
+    <p><strong>3.4.</strong> Recibo / Documento fiscal: ${esc(financeiro.emite_nota_fiscal === 'obrigatorio'
+      ? 'Emitir a cada pagamento — recibo, nota fiscal ou documento fiscal equivalente, conforme o enquadramento fiscal aplicável.'
       : financeiro.emite_nota_fiscal === 'quando_solicitado'
-      ? 'mediante solicitação do paciente'
-      : 'não aplicável conforme legislação vigente')}.</p>
+      ? 'Emitir quando solicitado pelo paciente ou responsável financeiro.'
+      : 'Não aplicável neste caso — procedimento de emissão externo ao termo, quando aplicável.')}.</p>
   </div>
 </section>
 

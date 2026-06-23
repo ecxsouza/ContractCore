@@ -54,16 +54,28 @@ const AREAS = [
   { value: 'outro',           label: 'Outro' },
 ];
 
-// Mesmo padrão do Step2Service do contrato — com placeholder de detalhamento
+// Mesmo padrão do Step2Service do contrato — com placeholder e sugestão por frequência
 const FREQUENCIAS = [
-  { value: 'semanal',                  label: 'Semanal',
-    placeholder: 'Ex: Uma vez por semana, em dia e horário fixo combinado entre as partes.' },
-  { value: 'quinzenal',                label: 'Quinzenal',
-    placeholder: 'Ex: A cada 15 dias, nas semanas ímpares do mês, em horário a combinar.' },
-  { value: 'mensal',                   label: 'Mensal',
-    placeholder: 'Ex: Uma vez por mês, a ser definido até o último dia útil do mês anterior.' },
-  { value: 'conforme agenda pactuada', label: 'Conforme agenda pactuada',
-    placeholder: 'Ex: Os atendimentos serão realizados conforme agenda combinada entre as partes, registrada por escrito (WhatsApp ou e-mail), com aviso prévio de 48 horas para alterações.' },
+  { value: 'semanal',
+    label: 'Semanal',
+    placeholder: 'Ex.: sessões semanais, preferencialmente às terças-feiras, às 15h, conforme disponibilidade da agenda.',
+    sugestao:    'Atendimentos semanais, em dia e horário previamente combinados entre paciente, responsável e clínica, conforme disponibilidade de agenda.',
+  },
+  { value: 'quinzenal',
+    label: 'Quinzenal',
+    placeholder: 'Ex.: sessões quinzenais, em dias e horários previamente combinados entre paciente, responsável e clínica.',
+    sugestao:    'Atendimentos quinzenais, em dia e horário previamente combinados entre paciente, responsável e clínica, conforme disponibilidade de agenda.',
+  },
+  { value: 'mensal',
+    label: 'Mensal',
+    placeholder: 'Ex.: sessões mensais, com agendamento prévio conforme disponibilidade da clínica e do profissional.',
+    sugestao:    'Atendimentos mensais, em dia e horário previamente combinados entre paciente, responsável e clínica, conforme disponibilidade de agenda.',
+  },
+  { value: 'conforme agenda pactuada',
+    label: 'Conforme agenda pactuada',
+    placeholder: 'Ex.: frequência definida conforme plano de atendimento, disponibilidade de agenda e necessidade administrativa do serviço contratado.',
+    sugestao:    'Atendimentos realizados conforme agenda pactuada entre paciente, responsável e clínica, observada a disponibilidade do profissional e a organização administrativa do serviço.',
+  },
 ];
 
 const DURACOES = [
@@ -117,11 +129,15 @@ export function PatientTermStep2Service({ data, company, onChange, onBack, onNex
       ? servico.duracao_sessao
       : ''
   );
-  const [agendaDetalhe, setAgendaDetalhe] = useState(
-    servico.frequencia?.startsWith('conforme agenda pactuada — ')
-      ? servico.frequencia.replace('conforme agenda pactuada — ', '')
-      : ''
-  );
+  // Reconhecer detalhamento de qualquer frequência salva como "valor — detalhe"
+  const [agendaDetalhe, setAgendaDetalhe] = useState(() => {
+    const freq = servico.frequencia || '';
+    const idx  = freq.indexOf(' — ');
+    return idx >= 0 ? freq.slice(idx + 3) : '';
+  });
+
+  // Frequência selecionada (valor puro, sem o detalhe)
+  const freqValor = servico.frequencia?.split(' — ')[0] || '';
 
   function updateServico(field: keyof typeof servico, value: string | boolean | number | null) {
     const updated = { ...servico, [field]: value };
@@ -137,10 +153,11 @@ export function PatientTermStep2Service({ data, company, onChange, onBack, onNex
     onChange({ servico: updated });
   }
 
-  const isAvaliacao = servico.tipo_termo === 'avaliacao_neuro';
-  const isOnline    = servico.modalidade === 'online' || servico.tipo_termo === 'online_adulto';
+  const isAvaliacao    = servico.tipo_termo === 'avaliacao_neuro';
+  const isOnline       = servico.modalidade === 'online' || servico.tipo_termo === 'online_adulto';
   const duracaoEhOutro = !DURACOES.slice(0,-1).some(d => d.value === servico.duracao_sessao);
-  const freqEhAgenda   = servico.frequencia?.startsWith('conforme agenda pactuada');
+  // Todas as 4 frequências abrem o campo de detalhamento
+  const freqEhAgenda   = FREQUENCIAS.some(f => f.value === freqValor);
 
   function handleDuracaoSelect(val: string) {
     if (val === 'outro') {
@@ -152,15 +169,9 @@ export function PatientTermStep2Service({ data, company, onChange, onBack, onNex
   }
 
   function handleFreqSelect(val: string) {
-    if (val === 'conforme agenda pactuada') {
-      const full = agendaDetalhe.trim()
-        ? `conforme agenda pactuada — ${agendaDetalhe.trim()}`
-        : 'conforme agenda pactuada';
-      updateServico('frequencia', full);
-    } else {
-      updateServico('frequencia', val);
-      setAgendaDetalhe('');
-    }
+    // Limpar detalhe ao trocar de frequência
+    setAgendaDetalhe('');
+    updateServico('frequencia', val);
   }
 
   function handleNext() {
@@ -285,9 +296,7 @@ export function PatientTermStep2Service({ data, company, onChange, onBack, onNex
           <label className="cc-label">Frequência</label>
           <div className="flex flex-wrap gap-2 mt-1">
             {FREQUENCIAS.map(f => {
-              const isSelected = freqEhAgenda
-                ? f.value === 'conforme agenda pactuada'
-                : servico.frequencia === f.value;
+              const isSelected = freqValor === f.value;
               return (
                 <button key={f.value} type="button"
                   onClick={() => handleFreqSelect(f.value)}
@@ -300,35 +309,37 @@ export function PatientTermStep2Service({ data, company, onChange, onBack, onNex
               );
             })}
           </div>
-          {freqEhAgenda && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="cc-label mb-0">Detalhamento da agenda</label>
-                {!agendaDetalhe && (
-                  <button type="button"
-                    onClick={() => {
-                      const sugestao = FREQUENCIAS.find(f => f.value === 'conforme agenda pactuada')?.placeholder.replace(/^Ex: /, '') || '';
-                      setAgendaDetalhe(sugestao);
-                      updateServico('frequencia', `conforme agenda pactuada — ${sugestao}`);
-                    }}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-brand-700 hover:bg-brand-600 text-white text-xs font-semibold rounded-lg transition-all">
-                    ✦ Usar sugestão
-                  </button>
-                )}
+          {freqEhAgenda && (() => {
+            const freqInfo = FREQUENCIAS.find(f => f.value === freqValor);
+            return freqInfo ? (
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="cc-label mb-0">Detalhamento da agenda</label>
+                  {!agendaDetalhe && (
+                    <button type="button"
+                      onClick={() => {
+                        const s = freqInfo.sugestao;
+                        setAgendaDetalhe(s);
+                        updateServico('frequencia', `${freqValor} — ${s}`);
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-brand-700 hover:bg-brand-600 text-white text-xs font-semibold rounded-lg transition-all">
+                      ✦ Usar sugestão
+                    </button>
+                  )}
+                </div>
+                <textarea className="cc-textarea mt-1" rows={3}
+                  value={agendaDetalhe}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setAgendaDetalhe(v);
+                    updateServico('frequencia', v.trim()
+                      ? `${freqValor} — ${v.trim()}`
+                      : freqValor);
+                  }}
+                  placeholder={freqInfo.placeholder} />
               </div>
-              <textarea className="cc-textarea mt-1" rows={3}
-                value={agendaDetalhe}
-                onChange={e => {
-                  const v = e.target.value;
-                  setAgendaDetalhe(v);
-                  const full = v.trim()
-                    ? `conforme agenda pactuada — ${v.trim()}`
-                    : 'conforme agenda pactuada';
-                  updateServico('frequencia', full);
-                }}
-                placeholder={FREQUENCIAS.find(f => f.value === 'conforme agenda pactuada')?.placeholder || ''} />
-            </div>
-          )}
+            ) : null;
+          })()}
         </div>
 
         {/* Duração — botões */}
@@ -382,7 +393,12 @@ export function PatientTermStep2Service({ data, company, onChange, onBack, onNex
               onChange={e => {
                 const v = e.target.value;
                 if (!isValidISODateYear(v)) return;
-                if (v && v < todayISO()) return;
+                // Bloquear ano anterior ao ano atual (além de data anterior a hoje)
+                if (v) {
+                  const year = Number(v.split('-')[0]);
+                  if (year < new Date().getFullYear()) return;
+                  if (v < todayISO()) return;
+                }
                 updateServico('data_inicio_atendimento', v);
               }}
               className="cc-input w-full" />

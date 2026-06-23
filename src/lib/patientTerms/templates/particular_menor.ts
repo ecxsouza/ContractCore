@@ -127,11 +127,11 @@ export function renderParticularMenor(ctx: TemplateContext): string {
     <p><strong>2.3.</strong> Vencimento: ${esc(financeiro.vencimento_pagamento)}.</p>
     <p><strong>2.4.</strong> O responsável financeiro — <strong>${nomeRespFin}</strong> — assume integralmente
     a obrigação de pagamento pelos serviços prestados ao paciente menor de idade.</p>
-    <p><strong>2.5.</strong> Emissão de recibo/nota fiscal: ${esc(financeiro.emite_nota_fiscal === 'obrigatorio'
-      ? 'obrigatória para cada pagamento realizado'
+    <p><strong>2.5.</strong> Recibo / Documento fiscal: ${esc(financeiro.emite_nota_fiscal === 'obrigatorio'
+      ? 'Emitir a cada pagamento — recibo, nota fiscal ou documento fiscal equivalente, conforme o enquadramento fiscal aplicável.'
       : financeiro.emite_nota_fiscal === 'quando_solicitado'
-      ? 'mediante solicitação'
-      : 'não aplicável conforme legislação vigente')}.</p>
+      ? 'Emitir quando solicitado pelo paciente ou responsável financeiro.'
+      : 'Não aplicável neste caso — procedimento de emissão externo ao termo, quando aplicável.')}.</p>
   </div>
 </section>
 

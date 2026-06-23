@@ -191,9 +191,9 @@ export const PATIENT_TERM_PAYMENT_LABELS: Record<string, string> = {
 
 // ── NOTA FISCAL ───────────────────────────────────────────────────
 export const PATIENT_TERM_NOTA_FISCAL_LABELS: Record<string, string> = {
-  obrigatorio:       'Emissão obrigatória',
-  quando_solicitado: 'Quando solicitado',
-  nao_emite:         'Não emite',
+  obrigatorio:       'Emitir a cada pagamento',
+  quando_solicitado: 'Emitir quando solicitado',
+  nao_emite:         'Não aplicável neste caso',
 };
 
 // ── GRAU DE PARENTESCO ────────────────────────────────────────────

@@ -302,6 +302,14 @@ export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) 
     if (paciente.email && !isValidEmail(paciente.email)) {
       toast.error('E-mail do paciente inválido'); return;
     }
+    const pacientePhoneDigits = onlyDigits(paciente.telefone);
+    if (pacientePhoneDigits.length > 0 && !isValidPhone(paciente.telefone)) {
+      toast.error('WhatsApp do paciente inválido ou incompleto'); return;
+    }
+    const pacienteCepDigits = onlyDigits(paciente.cep);
+    if (pacienteCepDigits.length > 0 && pacienteCepDigits.length !== 8) {
+      toast.error('CEP do paciente inválido ou incompleto'); return;
+    }
     if (paciente.is_menor) {
       if (!responsavel_legal.nome_completo.trim()) {
         toast.error('Nome do responsável legal é obrigatório para menor de idade'); return;
@@ -309,6 +317,13 @@ export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) 
       const rlCpf = onlyDigits(responsavel_legal.cpf);
       if (!rlCpf) { toast.error('CPF do responsável legal é obrigatório'); return; }
       if (!validateCPF(rlCpf)) { toast.error('CPF do responsável legal inválido'); return; }
+      if (responsavel_legal.email && !isValidEmail(responsavel_legal.email)) {
+        toast.error('E-mail do responsável legal inválido'); return;
+      }
+      const rlPhoneDigits = onlyDigits(responsavel_legal.telefone);
+      if (rlPhoneDigits.length > 0 && !isValidPhone(responsavel_legal.telefone)) {
+        toast.error('WhatsApp do responsável legal inválido ou incompleto'); return;
+      }
       if (!mesmo_responsavel) {
         if (!responsavel_financeiro.nome_completo.trim()) {
           toast.error('Nome do responsável financeiro é obrigatório'); return;
@@ -316,6 +331,13 @@ export function PatientTermStep1Patient({ data, onChange, onNext }: Step1Props) 
         const rfCpf = onlyDigits(responsavel_financeiro.cpf);
         if (!rfCpf) { toast.error('CPF do responsável financeiro é obrigatório'); return; }
         if (!validateCPF(rfCpf)) { toast.error('CPF do responsável financeiro inválido'); return; }
+        if (responsavel_financeiro.email && !isValidEmail(responsavel_financeiro.email)) {
+          toast.error('E-mail do responsável financeiro inválido'); return;
+        }
+        const rfPhoneDigits = onlyDigits(responsavel_financeiro.telefone);
+        if (rfPhoneDigits.length > 0 && !isValidPhone(responsavel_financeiro.telefone)) {
+          toast.error('WhatsApp do responsável financeiro inválido ou incompleto'); return;
+        }
       }
     }
     onNext();
